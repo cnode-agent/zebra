@@ -918,3 +918,25 @@ pub fn tachyon_actions_have_valid_digests(tx: &Transaction) -> Result<(), Transa
 
     Ok(())
 }
+
+/// Checks that a mempool transaction's tachyon bundle is not pointer-stamped.
+///
+/// # Standard Rule
+///
+/// A pointer-stamped (adjunct) bundle carries no proof of its own: its actions are proven by
+/// the proof stamp of the aggregate transaction it names, which consensus requires to be in
+/// the same block. Miners create adjuncts during block assembly by stripping the stamps of
+/// transactions an aggregate covers, so an adjunct arriving over the network can be neither
+/// verified on its own nor mined, and relaying one only wastes mempool space.
+///
+/// This is a relay policy rule, not a consensus rule: the same transaction is valid inside a
+/// block that also contains its aggregate.
+///
+/// <https://github.com/turbocrime/tachyon/blob/main/book/src/aggregation.md>
+pub fn mempool_no_tachyon_pointer_stamp(tx: &Transaction) -> Result<(), TransactionError> {
+    if tx.is_tachyon_adjunct() {
+        return Err(TransactionError::TachyonPointerStampInMempool);
+    }
+
+    Ok(())
+}

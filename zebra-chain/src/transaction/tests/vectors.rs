@@ -1500,6 +1500,128 @@ mod v7_tests {
             Amount::<NonNegative>::try_from(100).expect("valid amount"),
         );
     }
+
+    /// Computes `hStampActionsTachyon` over `descriptors`.
+    ///
+    /// This duplicates tachyon's private `blake2b::action_descriptor_digest` (BLAKE2b-256,
+    /// personalization `Tachyon-Actions`, over the sorted concatenated 64-byte descriptors).
+    /// Drift from the tachyon crate makes the autonome assertions below fail, rather than
+    /// silently passing against the wrong digest.
+    fn action_descriptor_digest(descriptors: &[zcash_tachyon::action::Descriptor]) -> [u8; 32] {
+        // `Vec<[u8; 64]>: FromIterator<Descriptor>` is tachyon's public descriptor-bytes
+        // conversion.
+        let mut descriptor_bytes: Vec<[u8; 64]> = descriptors.iter().copied().collect();
+        descriptor_bytes.sort_unstable();
+
+        let mut state = blake2b_simd::Params::new()
+            .hash_length(32)
+            .personal(b"Tachyon-Actions")
+            .to_state();
+        for descriptor in &descriptor_bytes {
+            state.update(descriptor);
+        }
+        state
+            .finalize()
+            .as_bytes()
+            .try_into()
+            .expect("hash length is 32")
+    }
+
+    /// A V7 transaction with a proof-stamped tachyon bundle carrying `action_count` actions,
+    /// whose `hStampActionsTachyon` covers exactly those actions: an autonome.
+    fn v7_tachyon_autonome(action_count: u8) -> Transaction {
+        let actions: Vec<_> = (0..action_count)
+            .map(|index| zcash_tachyon::Action {
+                cv: zcash_tachyon::value::Commitment::from(pasta_curves::EpAffine::generator()),
+                rk: rk_from_seed([0x50 + index; 64]),
+                sig: zcash_tachyon::action::Signature::read(&[0x01u8; 64][..]).unwrap(),
+            })
+            .collect();
+
+        let descriptors: Vec<_> = actions.iter().map(|action| action.descriptor()).collect();
+
+        // Every action publishes two tachygrams.
+        let tachygrams = (0..2 * action_count)
+            .map(|index| zcash_tachyon::Tachygram::from(fp_from_seed([0x60 + index; 64])))
+            .collect();
+
+        let bundle = zcash_tachyon::TachyonBundle::Proven(zcash_tachyon::Bundle {
+            actions,
+            value_balance: zcash_tachyon::value::Balance::ZERO,
+            binding_sig: zcash_tachyon::bundle::Signature::read(&[0x02u8; 64][..]).unwrap(),
+            stamp: zcash_tachyon::ProofStamp {
+                coverage: action_descriptor_digest(&descriptors),
+                tachygrams,
+                anchor: default_anchor(),
+                proof: Box::new(ragu::Proof::trivial()),
+            },
+        });
+
+        Transaction::V7 {
+            network_upgrade: NetworkUpgrade::Nu7,
+            lock_time: LockTime::min_lock_time_timestamp(),
+            expiry_height: block::Height(0),
+            inputs: Vec::new(),
+            outputs: Vec::new(),
+            sapling_shielded_data: None,
+            orchard_shielded_data: None,
+            ironwood_shielded_data: None,
+            tachyon_shielded_data: Some(crate::transaction::TachyonShieldedData(bundle)),
+        }
+    }
+
+    /// Block production has to tell the three tachyon bundle shapes apart: only an autonome can
+    /// be mined without other transactions.
+    #[test]
+    fn v7_tachyon_bundle_shapes() {
+        let _init_guard = zebra_test::init();
+
+        let autonome = v7_tachyon_autonome(2);
+        assert!(
+            autonome.is_tachyon_autonome(),
+            "a stamp covering exactly its own actions is an autonome",
+        );
+        assert!(!autonome.is_tachyon_adjunct());
+
+        // The stamped fixtures carry a placeholder covered-actions digest, which is exactly what
+        // an aggregate looks like: a proof stamp covering actions this transaction doesn't carry.
+        assert!(
+            !V7_TX_TACHYON_STAMPED.is_tachyon_autonome(),
+            "a stamp covering actions other than its own is an aggregate, not an autonome",
+        );
+        assert!(!V7_TX_TACHYON_STAMPED.is_tachyon_adjunct());
+
+        assert!(V7_TX_TACHYON_STRIPPED.is_tachyon_adjunct());
+        assert!(!V7_TX_TACHYON_STRIPPED.is_tachyon_autonome());
+
+        // Transactions with no tachyon bundle are neither.
+        assert!(!EMPTY_V7_TX.is_tachyon_autonome());
+        assert!(!EMPTY_V7_TX.is_tachyon_adjunct());
+    }
+
+    /// Tachyon actions are priced like the other action-based pools, so a transaction with more
+    /// tachyon actions than the ZIP-317 grace actions pays for each of them.
+    #[test]
+    fn v7_conventional_actions_count_tachyon_actions() {
+        let _init_guard = zebra_test::init();
+
+        // A transaction with no actions at all pays the 2 grace actions.
+        assert_eq!(zip317::conventional_actions(&EMPTY_V7_TX), 2);
+
+        // Below the grace actions, the grace still applies.
+        assert_eq!(zip317::conventional_actions(&v7_tachyon_autonome(1)), 2);
+
+        // Above it, every tachyon action is counted.
+        assert_eq!(zip317::conventional_actions(&v7_tachyon_autonome(3)), 3);
+        assert_eq!(zip317::conventional_actions(&v7_tachyon_autonome(5)), 5);
+
+        // Adjuncts keep the actions they were stamped with, so they are priced the same way.
+        assert_eq!(
+            zip317::conventional_actions(&V7_TX_TACHYON_STRIPPED),
+            2,
+            "one action, below the grace actions",
+        );
+    }
 }
 
 /// Regression test for the Orchard `rk` identity-point DoS vulnerability.

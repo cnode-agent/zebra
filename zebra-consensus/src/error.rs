@@ -300,6 +300,12 @@ pub enum TransactionError {
     #[error("tachyon action and binding signatures MUST verify over the transaction sighash: {0}")]
     TachyonSignatureInvalid(String),
 
+    #[error(
+        "tachyon pointer-stamped transactions are only valid inside a block containing their \
+         aggregate, so they are not accepted into the mempool"
+    )]
+    TachyonPointerStampInMempool,
+
     #[error("unexpected error")]
     Other(String),
 }

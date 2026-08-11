@@ -18,6 +18,7 @@ use zebra_chain::{
     block::{Header, Height, MAX_BLOCK_BYTES},
     parameters::Network,
     serialization::{CompactSizeMessage, ZcashSerialize},
+    tachyon::Tachygram,
     transaction::{
         self, zip317::BLOCK_UNPAID_ACTION_LIMIT, VerifiedUnminedTx, MIN_TRANSPARENT_TX_SIZE,
     },
@@ -80,6 +81,10 @@ pub fn select_mempool_transactions(
             cb
         });
 
+    // Tachyon (NU7) bundles that Zebra can't mine on their own would make the assembled block
+    // invalid, so drop them before selection.
+    let mempool_txs = drop_unminable_tachyon_txs(mempool_txs);
+
     let tx_dependencies = mempool_tx_deps.dependencies();
     let (independent_mempool_txs, mut dependent_mempool_txs): (HashMap<_, _>, HashMap<_, _>) =
         mempool_txs
@@ -98,6 +103,9 @@ pub fn select_mempool_transactions(
     let mut remaining_block_bytes: usize = MAX_BLOCK_BYTES.try_into().expect("fits in memory");
     let mut remaining_block_sigops = MAX_BLOCK_SIGOPS;
     let mut remaining_block_unpaid_actions: u32 = BLOCK_UNPAID_ACTION_LIMIT;
+    // The tachygrams revealed by the selected transactions, which must stay distinct across the
+    // whole block. Empty unless a selected transaction has a tachyon proof stamp.
+    let mut selected_tachygrams: HashSet<Tachygram> = HashSet::new();
 
     // `MAX_BLOCK_BYTES` limits the whole serialized block, so reserve space for the block header
     // and the transaction count before budgeting transactions, or the assembled block could
@@ -125,6 +133,7 @@ pub fn select_mempool_transactions(
             // The number of unpaid actions is always zero for transactions that pay the
             // conventional fee, so this check and limit is effectively ignored.
             &mut remaining_block_unpaid_actions,
+            &mut selected_tachygrams,
         );
     }
 
@@ -141,10 +150,69 @@ pub fn select_mempool_transactions(
             &mut remaining_block_bytes,
             &mut remaining_block_sigops,
             &mut remaining_block_unpaid_actions,
+            &mut selected_tachygrams,
         );
     }
 
     selected_txs
+}
+
+/// Drops the mempool transactions whose tachyon (NU7) bundle Zebra can't mine on its own.
+///
+/// # Consensus
+///
+/// > Every pointer-stamped transaction MUST bear a `tachyonAggregateId` referring to the
+/// > proof-stamped transaction in the same block covering its actions
+///
+/// > For each proof stamp, collect the descriptors of the bundle's own actions together with
+/// > those of every pointer-stamped transaction naming it, and compute the descriptor digest;
+/// > reject on a duplicate descriptor or a mismatch with the carried `hStampActionsTachyon`.
+///
+/// <https://github.com/turbocrime/tachyon/blob/main/book/src/zips/tachyon-bundle.md>
+///
+/// An *autonome* — a proof stamp whose `hStampActionsTachyon` covers exactly its own actions —
+/// satisfies both rules by itself, so it is selected like any other transaction. The other two
+/// bundle shapes need transactions Zebra can't supply:
+///
+/// - An *adjunct* (pointer-stamped) transaction is only valid next to the aggregate it names.
+///   Adjuncts are created by miners during block assembly, so one should never reach the mempool
+///   in the first place (see `check::mempool_no_tachyon_pointer_stamp`); dropping it here also
+///   keeps a template built from a mempool populated by other means from failing
+///   [`BlockError::TachyonAggregateNotFound`].
+/// - An *aggregate*'s stamp covers actions carried by adjuncts, which a miner produces by
+///   stripping the stamps of the transactions the aggregate covers. Zebra does not aggregate or
+///   strip stamps, so it can't assemble the adjunct set the aggregate committed to, and mining
+///   the aggregate alone fails [`BlockError::TachyonCoverageMismatch`].
+///
+/// Both shapes stay in the mempool and are still relayed, so aggregation-capable miners can use
+/// them.
+///
+/// [`BlockError::TachyonAggregateNotFound`]: zebra_consensus::BlockError::TachyonAggregateNotFound
+/// [`BlockError::TachyonCoverageMismatch`]: zebra_consensus::BlockError::TachyonCoverageMismatch
+fn drop_unminable_tachyon_txs(mempool_txs: Vec<VerifiedUnminedTx>) -> Vec<VerifiedUnminedTx> {
+    mempool_txs
+        .into_iter()
+        .filter(|tx| {
+            let tx = &tx.transaction.transaction;
+
+            // Transactions with no tachyon bundle, which is all of them before NU7.
+            if !tx.has_tachyon_shielded_data() {
+                return true;
+            }
+
+            let is_autonome = tx.is_tachyon_autonome();
+            if !is_autonome {
+                tracing::debug!(
+                    tx_id = ?tx.hash(),
+                    is_adjunct = tx.is_tachyon_adjunct(),
+                    "skipping tachyon transaction that can't be mined without an aggregate \
+                     or its adjuncts",
+                );
+            }
+
+            is_autonome
+        })
+        .collect()
 }
 
 /// Returns the maximum possible serialized size of a block's transaction count, in bytes.
@@ -254,6 +322,7 @@ fn checked_add_transaction_weighted_random(
     remaining_block_bytes: &mut usize,
     remaining_block_sigops: &mut u32,
     remaining_block_unpaid_actions: &mut u32,
+    selected_tachygrams: &mut HashSet<Tachygram>,
 ) -> Option<WeightedIndex<f32>> {
     // > Pick one of those transactions at random with probability in direct proportion
     // > to its weight_ratio, and remove it from the set of candidate transactions
@@ -264,6 +333,7 @@ fn checked_add_transaction_weighted_random(
         remaining_block_bytes,
         remaining_block_sigops,
         remaining_block_unpaid_actions,
+        selected_tachygrams,
     ) {
         return new_tx_weights;
     }
@@ -309,6 +379,7 @@ fn checked_add_transaction_weighted_random(
                     remaining_block_bytes,
                     remaining_block_sigops,
                     remaining_block_unpaid_actions,
+                    selected_tachygrams,
                 ) {
                     continue;
                 }
@@ -334,15 +405,17 @@ fn checked_add_transaction_weighted_random(
 
 trait TryUpdateBlockLimits {
     /// Checks if a transaction fits within the provided remaining block bytes,
-    /// sigops, and unpaid actions limits.
+    /// sigops, and unpaid actions limits, and reveals no tachygram that an already-selected
+    /// transaction reveals.
     ///
-    /// Updates the limits and returns true if the transaction does fit, or
-    /// returns false otherwise.
+    /// Updates the limits and the selected tachygrams, and returns true if the transaction does
+    /// fit, or returns false otherwise.
     fn try_update_block_template_limits(
         &self,
         remaining_block_bytes: &mut usize,
         remaining_block_sigops: &mut u32,
         remaining_block_unpaid_actions: &mut u32,
+        selected_tachygrams: &mut HashSet<Tachygram>,
     ) -> bool;
 }
 
@@ -352,6 +425,7 @@ impl TryUpdateBlockLimits for VerifiedUnminedTx {
         remaining_block_bytes: &mut usize,
         remaining_block_sigops: &mut u32,
         remaining_block_unpaid_actions: &mut u32,
+        selected_tachygrams: &mut HashSet<Tachygram>,
     ) -> bool {
         // > If the block template with this transaction included
         // > would be within the block size limit and block sigop limit,
@@ -363,7 +437,23 @@ impl TryUpdateBlockLimits for VerifiedUnminedTx {
         // count (legacy + P2SH) so template selection cannot produce blocks that the block verifier
         // would reject for exceeding `MAX_BLOCK_SIGOPS`.
         let tx_block_sigops = self.block_sigop_count();
-        if self.transaction.size <= *remaining_block_bytes
+
+        // # Consensus
+        //
+        // > All tachygrams in a block MUST be distinct.
+        //
+        // <https://github.com/turbocrime/tachyon/blob/main/book/src/zips/tachyon-bundle.md>
+        //
+        // The mempool can hold two transactions that reveal the same tachygram: they conflict, but
+        // only one of them can be mined, and a block containing both is rejected. Tachygrams are
+        // empty for every transaction without a tachyon proof stamp.
+        let tachygrams = self.transaction.transaction.tachyon_tachygrams();
+        let reveals_selected_tachygram = tachygrams
+            .iter()
+            .any(|tachygram| selected_tachygrams.contains(tachygram));
+
+        if !reveals_selected_tachygram
+            && self.transaction.size <= *remaining_block_bytes
             && tx_block_sigops <= *remaining_block_sigops
             && self.unpaid_actions <= *remaining_block_unpaid_actions
         {
@@ -373,6 +463,8 @@ impl TryUpdateBlockLimits for VerifiedUnminedTx {
             // Unpaid actions are always zero for transactions that pay the conventional fee,
             // so this limit always remains the same after they are added.
             *remaining_block_unpaid_actions -= self.unpaid_actions;
+
+            selected_tachygrams.extend(tachygrams);
 
             true
         } else {

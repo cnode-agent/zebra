@@ -517,6 +517,11 @@ where
             // These are pure consensus rules over the transaction structure and must always hold.
             check_transaction_invariants(tx.as_ref(), height, &network)?;
 
+            // A pointer-stamped tachyon bundle can only be verified alongside the aggregate whose
+            // proof stamp covers its actions, which consensus requires to be in the same block.
+            // Reject it before the expensive checks below.
+            check::mempool_no_tachyon_pointer_stamp(tx.as_ref())?;
+
             tracing::trace!(?tx_id, "passed quick checks");
 
             // Mempool transactions are checked against the next median-time-past from state.

@@ -157,6 +157,19 @@ pub fn conventional_actions(transaction: &Transaction) -> u32 {
     // Ironwood actions have the same structure and cost as Orchard actions, so they are counted
     // the same way. This is zero for pre-v6 transactions.
     let n_actions_ironwood = transaction.ironwood_actions().count();
+    // Tachyon actions carry the same per-action verification cost as Orchard actions (a value
+    // commitment, a verification key, and a signature over the sighash), so they are counted the
+    // same way. This is zero for pre-v7 transactions.
+    //
+    // Each action is priced in the transaction that carries it, which splits the cost of an
+    // aggregated transaction between the adjunct that keeps the actions and the aggregate that
+    // carries the covering proof.
+    //
+    // TODO: replace this with `contribution_Tachyon` once ZIP-317 defines it. The tachyon fee
+    // contribution is still an open question, so this is an interim rule that prices tachyon
+    // actions at parity with the other action-based pools instead of leaving them free:
+    // <https://github.com/tachyon-zcash/zips/pull/1>
+    let n_actions_tachyon = transaction.tachyon_action_count();
 
     let tx_in_logical_actions = div_ceil(tx_in_total_size, P2PKH_STANDARD_INPUT_SIZE);
     let tx_out_logical_actions = div_ceil(tx_out_total_size, P2PKH_STANDARD_OUTPUT_SIZE);
@@ -165,7 +178,8 @@ pub fn conventional_actions(transaction: &Transaction) -> u32 {
         + 2 * n_join_split
         + max(n_spends_sapling, n_outputs_sapling)
         + n_actions_orchard
-        + n_actions_ironwood;
+        + n_actions_ironwood
+        + n_actions_tachyon;
     let logical_actions: u32 = logical_actions
         .try_into()
         .expect("transaction items are limited by serialized size limit");

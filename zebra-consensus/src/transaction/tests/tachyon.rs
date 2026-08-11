@@ -22,7 +22,10 @@ use zcash_tachyon::{
 
 use crate::{
     error::TransactionError,
-    transaction::{BlockRequest, BlockResponse, BlockTxVerifier},
+    transaction::{
+        BlockRequest, BlockResponse, BlockTxVerifier, MempoolRequest, MempoolResponse,
+        MempoolTxVerifier,
+    },
 };
 
 /// A regtest network with NU7 scheduled, and NU7's activation height.
@@ -172,6 +175,26 @@ async fn verify_block_transaction(
         .await
 }
 
+/// Verifies `tx` through the full transaction verifier with a mempool request at `height`.
+async fn verify_mempool_transaction(
+    network: &Network,
+    height: Height,
+    tx: Transaction,
+) -> Result<MempoolResponse, TransactionError> {
+    // No transparent inputs anywhere in these tests, and the tachyon mempool policy check runs
+    // before the median-time-past lookup, so the verifier never calls the state.
+    let state: MockService<zebra_state::Request, zebra_state::Response, PanicAssertion> =
+        MockService::build().for_unit_tests();
+    let verifier = MempoolTxVerifier::new_for_tests(network, state);
+
+    verifier
+        .oneshot(MempoolRequest {
+            transaction: zebra_chain::transaction::UnminedTx::from(tx),
+            height,
+        })
+        .await
+}
+
 /// The V7 sighash commits to the tachyon bundle's effecting data, but not its stamp.
 #[tokio::test(flavor = "multi_thread")]
 async fn v7_sighash_commits_to_tachyon_bundle() {
@@ -236,6 +259,44 @@ async fn v7_with_signed_tachyon_bundle_is_accepted() {
     verify_block_transaction(&network, height, tx)
         .await
         .expect("a signed pointer-stamped tachyon transaction should verify");
+}
+
+/// A pointer-stamped transaction can only be verified next to the aggregate that proves its
+/// actions, so the mempool rejects it even though a block accepts it.
+#[tokio::test(flavor = "multi_thread")]
+async fn v7_pointer_stamp_is_rejected_from_the_mempool() {
+    let _init_guard = zebra_test::init();
+    let (network, height) = nu7_network();
+
+    let adjunct = signed_spend_bundle(100)
+        .stamp(mock_proof_stamp(vec![]))
+        .strip(PointerStamp::try_from([0xEEu8; 64]).expect("nonzero wtxid"));
+    let tx = v7_transaction(NetworkUpgrade::Nu7, Some(TachyonBundle::Adjunct(adjunct)));
+
+    assert_eq!(
+        verify_mempool_transaction(&network, height, tx).await.err(),
+        Some(TransactionError::TachyonPointerStampInMempool),
+    );
+}
+
+/// The mempool policy rule only rejects pointer-stamped bundles: proof-stamped bundles are
+/// self-contained, and non-tachyon transactions are unaffected.
+#[test]
+fn mempool_tachyon_policy_only_rejects_pointer_stamps() {
+    let _init_guard = zebra_test::init();
+
+    let proven = signed_spend_bundle(100).stamp(mock_proof_stamp(vec![]));
+    let proven_tx = v7_transaction(NetworkUpgrade::Nu7, Some(TachyonBundle::Proven(proven)));
+    assert_eq!(
+        crate::transaction::check::mempool_no_tachyon_pointer_stamp(&proven_tx),
+        Ok(())
+    );
+
+    let no_bundle_tx = v7_transaction(NetworkUpgrade::Nu7, None);
+    assert_eq!(
+        crate::transaction::check::mempool_no_tachyon_pointer_stamp(&no_bundle_tx),
+        Ok(())
+    );
 }
 
 /// A tachyon bundle whose signatures don't commit to the transaction sighash is rejected.

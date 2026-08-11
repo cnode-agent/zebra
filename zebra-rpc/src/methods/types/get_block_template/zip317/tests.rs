@@ -2,14 +2,19 @@
 
 #![allow(clippy::unwrap_in_result)]
 
+use std::sync::Arc;
+
 use zcash_keys::address::Address;
 use zcash_transparent::address::TransparentAddress;
 
 use zebra_chain::{
     amount::Amount,
     block::{Header, Height, MAX_BLOCK_BYTES},
-    parameters::Network,
-    transaction,
+    parameters::{Network, NetworkUpgrade},
+    transaction::{
+        self, tachyon_mock, LockTime, TachyonShieldedData, Transaction, UnminedTx,
+        VerifiedUnminedTx,
+    },
     transparent::OutPoint,
 };
 use zebra_node_services::mempool::TransactionDependencies;
@@ -17,6 +22,38 @@ use zebra_node_services::mempool::TransactionDependencies;
 use crate::methods::types::{get_block_template::MinerParams, transaction::TransactionTemplate};
 
 use super::{max_transaction_count_size, select_mempool_transactions};
+
+/// The miner parameters used by these tests.
+fn miner_params() -> MinerParams {
+    MinerParams::from(Address::from(TransparentAddress::PublicKeyHash([0x7e; 20])))
+}
+
+/// A verified mempool transaction carrying only `tachyon_shielded_data`.
+///
+/// Its miner fee is well above the conventional fee, so it is a conventional-fee candidate with
+/// no unpaid actions.
+fn tachyon_tx(tachyon_shielded_data: TachyonShieldedData) -> VerifiedUnminedTx {
+    let tx = Transaction::V7 {
+        network_upgrade: NetworkUpgrade::Nu7,
+        lock_time: LockTime::min_lock_time_timestamp(),
+        expiry_height: Height(0),
+        inputs: Vec::new(),
+        outputs: Vec::new(),
+        sapling_shielded_data: None,
+        orchard_shielded_data: None,
+        ironwood_shielded_data: None,
+        tachyon_shielded_data: Some(tachyon_shielded_data),
+    };
+
+    VerifiedUnminedTx::new(
+        UnminedTx::from(tx),
+        Amount::try_from(1_000_000).expect("valid amount"),
+        0,
+        0,
+        Arc::new(Vec::new()),
+    )
+    .expect("mock tachyon transaction passes the ZIP-317 mempool checks")
+}
 
 #[test]
 fn excludes_tx_with_unselected_dependencies() {
@@ -168,5 +205,87 @@ fn reserves_space_for_block_header_and_transaction_count() {
         ),
         vec![],
         "should not select a transaction one byte over the safe block budget"
+    );
+}
+
+/// Only tachyon autonomes can be mined without transactions Zebra can't produce, so aggregates
+/// and adjuncts are never selected.
+#[test]
+fn excludes_unminable_tachyon_transactions() {
+    let network = Network::Mainnet;
+    let height = Height(1_000_000);
+
+    let autonome = tachyon_tx(tachyon_mock::autonome(&[]));
+    let autonome_id = autonome.transaction.id.mined_id();
+
+    let selected_txs = select_mempool_transactions(
+        &network,
+        height,
+        &miner_params(),
+        vec![
+            autonome,
+            // Its stamp covers actions carried by adjuncts Zebra can't assemble.
+            tachyon_tx(tachyon_mock::aggregate()),
+            // Its actions are proven by an aggregate that isn't in the mempool.
+            tachyon_tx(tachyon_mock::adjunct([0xEE; 64])),
+        ],
+        TransactionDependencies::default(),
+        None,
+    );
+
+    assert_eq!(
+        selected_txs
+            .iter()
+            .map(|(_, tx)| tx.transaction.id.mined_id())
+            .collect::<Vec<_>>(),
+        vec![autonome_id],
+        "should only select the autonome",
+    );
+}
+
+/// All tachygrams in a block must be distinct, so at most one of two transactions revealing the
+/// same tachygram is selected.
+#[test]
+fn excludes_duplicate_tachygrams() {
+    let network = Network::Mainnet;
+    let height = Height(1_000_000);
+
+    let selected_txs = select_mempool_transactions(
+        &network,
+        height,
+        &miner_params(),
+        vec![
+            tachyon_tx(tachyon_mock::autonome(&[7, 8])),
+            tachyon_tx(tachyon_mock::autonome(&[7, 9])),
+        ],
+        TransactionDependencies::default(),
+        None,
+    );
+
+    assert_eq!(
+        selected_txs.len(),
+        1,
+        "should select only one of two transactions revealing the same tachygram, \
+         selected: {selected_txs:?}",
+    );
+
+    // Distinct tachygrams don't conflict.
+    let selected_txs = select_mempool_transactions(
+        &network,
+        height,
+        &miner_params(),
+        vec![
+            tachyon_tx(tachyon_mock::autonome(&[7, 8])),
+            tachyon_tx(tachyon_mock::autonome(&[9, 10])),
+        ],
+        TransactionDependencies::default(),
+        None,
+    );
+
+    assert_eq!(
+        selected_txs.len(),
+        2,
+        "should select both transactions when their tachygrams are distinct, \
+         selected: {selected_txs:?}",
     );
 }

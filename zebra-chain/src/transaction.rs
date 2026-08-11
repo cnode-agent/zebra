@@ -15,6 +15,8 @@ mod tachyon_shielded;
 mod txid;
 mod unmined;
 
+#[cfg(any(test, feature = "proptest-impl"))]
+pub use tachyon_shielded::mock as tachyon_mock;
 pub use tachyon_shielded::TachyonShieldedData;
 
 #[cfg(any(test, feature = "proptest-impl"))]
@@ -1328,6 +1330,41 @@ impl Transaction {
     pub fn has_tachyon_actions(&self) -> bool {
         self.tachyon_shielded_data()
             .is_some_and(|data| !data.actions().is_empty())
+    }
+
+    /// The number of tachyon actions in this transaction. Zero for pre-v7 transactions, and
+    /// for v7 transactions without a tachyon bundle.
+    pub fn tachyon_action_count(&self) -> usize {
+        self.tachyon_shielded_data()
+            .map_or(0, |data| data.actions().len())
+    }
+
+    /// Is this transaction's tachyon bundle an *autonome*: proof-stamped, with its
+    /// `hStampActionsTachyon` covering exactly its own actions?
+    ///
+    /// An autonome's proof stamp needs no other transaction, so a block can include it on its
+    /// own. An *aggregate*'s stamp instead covers the actions of pointer-stamped transactions
+    /// elsewhere in the block, so it is only valid alongside all of them.
+    ///
+    /// Returns `false` for pointer-stamped bundles, and for transactions with no tachyon
+    /// bundle.
+    pub fn is_tachyon_autonome(&self) -> bool {
+        self.tachyon_shielded_data()
+            .is_some_and(|data| data.0.is_autonome())
+    }
+
+    /// Is this transaction's tachyon bundle pointer-stamped (an *adjunct*)?
+    ///
+    /// An adjunct's proof stamp has been stripped by a miner and replaced with a reference to
+    /// the aggregate transaction covering its actions. Adjuncts are created during block
+    /// assembly, so they are only valid inside a block that also contains their aggregate.
+    ///
+    /// Returns `false` for transactions with no tachyon bundle.
+    pub fn is_tachyon_adjunct(&self) -> bool {
+        matches!(
+            self.tachyon_shielded_data().map(|data| &data.0),
+            Some(zcash_tachyon::TachyonBundle::Adjunct(_))
+        )
     }
 
     // value balances
