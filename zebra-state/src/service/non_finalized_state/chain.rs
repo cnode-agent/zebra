@@ -1386,15 +1386,6 @@ impl Chain {
             .hash
     }
 
-    /// Returns the non-finalized root block hash and height.
-    #[allow(dead_code)]
-    pub fn non_finalized_root(&self) -> (block::Hash, block::Height) {
-        (
-            self.non_finalized_root_hash(),
-            self.non_finalized_root_height(),
-        )
-    }
-
     /// Returns the block hash of the non-finalized root block.
     pub fn non_finalized_root_hash(&self) -> block::Hash {
         self.blocks
@@ -1476,7 +1467,6 @@ impl Chain {
     }
 
     /// Returns the non-finalized length of this chain.
-    #[allow(dead_code)]
     pub fn len(&self) -> usize {
         self.blocks.len()
     }

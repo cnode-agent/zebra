@@ -196,7 +196,6 @@ impl ZebraDb {
     /// Returns all the Sprout note commitment trees in the database.
     ///
     /// Calling this method can load a lot of data into RAM, and delay block commit transactions.
-    #[allow(dead_code)]
     pub fn sprout_trees_full_map(
         &self,
     ) -> HashMap<sprout::tree::Root, Arc<sprout::tree::NoteCommitmentTree>> {
@@ -757,7 +756,7 @@ impl DiskWriteBatch {
     }
 
     /// Deletes the given Sprout note commitment tree `anchor`.
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn delete_sprout_anchor(&mut self, zebra_db: &ZebraDb, anchor: &sprout::tree::Root) {
         let sprout_anchors = zebra_db.db.cf_handle("sprout_anchors").unwrap();
         self.zs_delete(&sprout_anchors, anchor);
@@ -806,7 +805,7 @@ impl DiskWriteBatch {
     }
 
     /// Deletes the given Sapling note commitment tree `anchor`.
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn delete_sapling_anchor(&mut self, zebra_db: &ZebraDb, anchor: &sapling::tree::Root) {
         let sapling_anchors = zebra_db.db.cf_handle("sapling_anchors").unwrap();
         self.zs_delete(&sapling_anchors, anchor);

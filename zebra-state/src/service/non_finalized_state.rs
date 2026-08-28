@@ -246,7 +246,6 @@ impl NonFinalizedState {
     /// If the internal states are different, it returns `false`,
     /// even if the chains and blocks are equal.
     #[cfg(any(test, feature = "proptest-impl"))]
-    #[allow(dead_code)]
     pub fn eq_internal_state(&self, other: &NonFinalizedState) -> bool {
         // this method must be updated every time a consensus-critical field is added to NonFinalizedState
         // (diagnostic fields can be ignored)
@@ -696,7 +695,6 @@ impl NonFinalizedState {
 
     /// Returns `true` if `hash` is contained in the non-finalized portion of any
     /// known chain.
-    #[allow(dead_code)]
     pub fn any_chain_contains(&self, hash: &block::Hash) -> bool {
         self.chain_set
             .iter()
@@ -750,7 +748,6 @@ impl NonFinalizedState {
     }
 
     /// Returns the block at the tip of the best chain.
-    #[allow(dead_code)]
     pub fn best_tip_block(&self) -> Option<&ContextuallyVerifiedBlock> {
         let best_chain = self.best_chain()?;
 

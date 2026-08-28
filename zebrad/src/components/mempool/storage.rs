@@ -514,7 +514,7 @@ impl Storage {
     /// Maintains the order in which the other unmined transactions have been inserted into the mempool.
     ///
     /// Does not add or remove from the 'rejected' tracking set.
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn remove_exact(&mut self, exact_wtxids: &HashSet<UnminedTxId>) -> usize {
         self.verified
             .remove_all_that(|tx| exact_wtxids.contains(&tx.transaction.id))
@@ -623,7 +623,6 @@ impl Storage {
     }
 
     /// Clears the whole mempool storage.
-    #[allow(dead_code)]
     pub fn clear(&mut self) {
         self.verified.clear();
         self.tip_rejected_exact.clear();
@@ -688,13 +687,11 @@ impl Storage {
     }
 
     /// Returns the number of transactions in the mempool.
-    #[allow(dead_code)]
     pub fn transaction_count(&self) -> usize {
         self.verified.transaction_count()
     }
 
     /// Returns the cost of the transactions in the mempool, according to ZIP-401.
-    #[allow(dead_code)]
     pub fn total_cost(&self) -> u64 {
         self.verified.total_cost()
     }
@@ -767,7 +764,6 @@ impl Storage {
     /// Returns the number of rejected [`UnminedTxId`]s or [`transaction::Hash`]es.
     ///
     /// Transactions on multiple rejected lists are counted multiple times.
-    #[allow(dead_code)]
     pub fn rejected_transaction_count(&mut self) -> usize {
         self.tip_rejected_exact.len()
             + self.tip_rejected_same_effects.len()

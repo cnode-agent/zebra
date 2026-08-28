@@ -73,7 +73,6 @@ pub struct OutputLocation {
 
 impl OutputLocation {
     /// Creates an output location from a block height, and `usize` transaction and output indexes.
-    #[allow(dead_code)]
     pub fn from_usize(
         height: Height,
         transaction_index: usize,
@@ -132,7 +131,6 @@ impl OutputLocation {
 
     /// Allows tests to set the height of this output location.
     #[cfg(any(test, feature = "proptest-impl"))]
-    #[allow(dead_code)]
     pub fn height_mut(&mut self) -> &mut Height {
         &mut self.transaction_location.height
     }
@@ -208,7 +206,6 @@ impl<C: Constraint + Copy + std::fmt::Debug> AddressBalanceLocationInner<C> {
 
     /// Allows tests to set the height of the address location.
     #[cfg(any(test, feature = "proptest-impl"))]
-    #[allow(dead_code)]
     pub fn height_mut(&mut self) -> &mut Height {
         &mut self.location.transaction_location.height
     }
@@ -477,14 +474,12 @@ impl AddressUnspentOutput {
 
     /// Allows tests to modify the address location.
     #[cfg(any(test, feature = "proptest-impl"))]
-    #[allow(dead_code)]
     pub fn address_location_mut(&mut self) -> &mut AddressLocation {
         &mut self.address_location
     }
 
     /// Allows tests to modify the unspent output location.
     #[cfg(any(test, feature = "proptest-impl"))]
-    #[allow(dead_code)]
     pub fn unspent_output_location_mut(&mut self) -> &mut OutputLocation {
         &mut self.unspent_output_location
     }
@@ -571,14 +566,12 @@ impl AddressTransaction {
 
     /// Allows tests to modify the address location.
     #[cfg(any(test, feature = "proptest-impl"))]
-    #[allow(dead_code)]
     pub fn address_location_mut(&mut self) -> &mut AddressLocation {
         &mut self.address_location
     }
 
     /// Allows tests to modify the unspent output location.
     #[cfg(any(test, feature = "proptest-impl"))]
-    #[allow(dead_code)]
     pub fn transaction_location_mut(&mut self) -> &mut TransactionLocation {
         &mut self.transaction_location
     }

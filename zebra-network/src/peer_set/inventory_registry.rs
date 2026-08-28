@@ -23,11 +23,13 @@ use crate::{
     BoxError, PeerSocketAddr,
 };
 
+#[cfg(test)]
 use self::update::Update;
 
 /// Underlying type for the alias InventoryStatus::*
 use InventoryResponse::*;
 
+#[cfg(test)]
 pub mod update;
 
 #[cfg(test)]
@@ -124,7 +126,7 @@ impl InventoryChange {
     }
 
     /// Returns a new missing inventory change from a single hash.
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn new_missing(hash: InventoryHash, peer: PeerSocketAddr) -> Self {
         let bv = AtLeastOne::from_vec(vec![hash]).expect("bounded vec must fit");
         InventoryStatus::Missing((bv, peer))
@@ -227,7 +229,6 @@ impl InventoryRegistry {
     }
 
     /// Returns an iterator over addrs of peers that have recently missed `hash` in their inventory.
-    #[allow(dead_code)]
     pub fn missing_peers(&self, hash: InventoryHash) -> impl Iterator<Item = &PeerSocketAddr> {
         self.status_peers(hash)
             .filter_map(|addr_status| addr_status.missing())
@@ -270,7 +271,7 @@ impl InventoryRegistry {
     ///
     /// Yields current statuses first, then previously rotated statuses.
     /// This can include multiple statuses for the same hash.
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn status_hashes(
         &self,
     ) -> impl Iterator<Item = (&InventoryHash, &IndexMap<PeerSocketAddr, InventoryMarker>)> {
@@ -278,7 +279,7 @@ impl InventoryRegistry {
     }
 
     /// Returns a future that waits for new registry updates.
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn update(&mut self) -> Update<'_> {
         Update::new(self)
     }

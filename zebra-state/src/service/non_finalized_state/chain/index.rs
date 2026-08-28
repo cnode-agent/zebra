@@ -225,7 +225,6 @@ impl TransparentTransfers {
     }
 
     /// Returns the partial balance for this address.
-    #[allow(dead_code)]
     pub fn balance(&self) -> Amount<NegativeAllowed> {
         self.balance
     }
@@ -277,14 +276,12 @@ impl TransparentTransfers {
     ///
     /// Some of these outputs might already be spent.
     /// [`TransparentTransfers::spent_utxos`] returns spent UTXOs.
-    #[allow(dead_code)]
     pub fn created_utxos(&self) -> &BTreeMap<OutputLocation, transparent::Output> {
         &self.created_utxos
     }
 
     /// Returns the [`OutputLocation`]s of the spent transparent outputs sent to this address,
     /// in this partial chain, in chain order.
-    #[allow(dead_code)]
     pub fn spent_utxos(&self) -> &BTreeSet<OutputLocation> {
         &self.spent_utxos
     }

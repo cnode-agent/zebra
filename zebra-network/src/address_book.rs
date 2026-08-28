@@ -584,7 +584,7 @@ impl AddressBook {
     ///
     /// All address removals should go through `take`, so that the address
     /// book metrics are accurate.
-    #[allow(dead_code)]
+    #[cfg(test)]
     fn take(&mut self, removed_addr: PeerSocketAddr) -> Option<MetaAddr> {
         let _guard = self.span.enter();
 

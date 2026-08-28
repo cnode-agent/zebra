@@ -549,7 +549,6 @@ impl MetaAddr {
     /// See the [`MetaAddr::last_seen`] method for details.
     //
     // TODO: pub(in crate::address_book) - move meta_addr into address_book
-    #[allow(dead_code)]
     pub(crate) fn last_response(&self) -> Option<DateTime32> {
         self.last_response
     }

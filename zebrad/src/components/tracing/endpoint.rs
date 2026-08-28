@@ -29,7 +29,8 @@ use crate::{components::tokio::TokioComponent, prelude::*};
     component(inject = "init_tokio(zebrad::components::tokio::TokioComponent)")
 )]
 pub struct TracingEndpoint {
-    #[allow(dead_code)]
+    // Only read by `open()`, which is behind the `filter-reload` feature.
+    #[cfg_attr(not(feature = "filter-reload"), allow(dead_code))]
     addr: Option<SocketAddr>,
 }
 

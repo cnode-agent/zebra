@@ -1126,12 +1126,6 @@ impl DiskDb {
         self.db.path()
     }
 
-    /// Returns the low-level rocksdb inner database.
-    #[allow(dead_code)]
-    fn inner(&self) -> &Arc<DB> {
-        &self.db
-    }
-
     /// Returns the column family handle for `cf_name`.
     pub fn cf_handle(&self, cf_name: &str) -> Option<rocksdb::ColumnFamilyRef<'_>> {
         // Note: the lifetime returned by this method is subtly wrong. As of December 2023 it is

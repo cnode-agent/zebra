@@ -106,7 +106,7 @@ impl Builder {
     }
 
     /// Configure the codec's maximum accepted payload size, in bytes.
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn with_max_body_len(mut self, len: usize) -> Self {
         self.max_len = len;
         self

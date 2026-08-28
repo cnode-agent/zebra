@@ -356,7 +356,6 @@ impl ZebraDb {
     /// Returns the [`transaction::Hash`] for [`TransactionLocation`],
     /// if it exists in the finalized chain.
     #[allow(clippy::unwrap_in_result)]
-    #[allow(dead_code)]
     pub fn transaction_hash(&self, location: TransactionLocation) -> Option<transaction::Hash> {
         let hash_by_tx_loc = self.db.cf_handle("hash_by_tx_loc").unwrap();
         self.db.zs_get(&hash_by_tx_loc, &location)

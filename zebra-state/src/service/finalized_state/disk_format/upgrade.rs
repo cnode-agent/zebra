@@ -265,7 +265,6 @@ impl DbFormatChange {
     }
 
     /// Returns true if this format change/check is an upgrade.
-    #[allow(dead_code)]
     pub fn is_upgrade(&self) -> bool {
         matches!(self, Upgrade { .. })
     }
