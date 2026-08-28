@@ -21,7 +21,7 @@ use futures::FutureExt;
 use hex::FromHex;
 use insta::{dynamic_redaction, Settings};
 use jsonrpsee::core::RpcResult as Result;
-use tower::{buffer::Buffer, util::BoxService, Service};
+use tower::{buffer::Buffer, util::BoxService};
 
 use zcash_address::{ToAddress, ZcashAddress};
 use zcash_protocol::consensus::NetworkType;
@@ -46,7 +46,10 @@ use zebra_network::{
     types::{MetaAddr, PeerServices},
 };
 use zebra_node_services::{mempool, BoxError};
-use zebra_state::{GetBlockTemplateChainInfo, ReadRequest, ReadResponse, MAX_ON_DISK_HEIGHT};
+use zebra_state::{
+    GetBlockTemplateChainInfo, ReadRequest, ReadResponse, ReadState as ReadStateService,
+    State as StateService, MAX_ON_DISK_HEIGHT,
+};
 use zebra_test::{
     mock_service::{MockService, PanicAssertion},
     vectors::BLOCK_MAINNET_1_BYTES,
@@ -998,24 +1001,8 @@ pub async fn test_mining_rpcs<State, ReadState>(
     block_verifier_router: Buffer<BoxService<Request, Hash, RouterError>, Request>,
     settings: Settings,
 ) where
-    State: Service<
-            zebra_state::Request,
-            Response = zebra_state::Response,
-            Error = zebra_state::BoxError,
-        > + Clone
-        + Send
-        + Sync
-        + 'static,
-    <State as Service<zebra_state::Request>>::Future: Send,
-    ReadState: Service<
-            zebra_state::ReadRequest,
-            Response = zebra_state::ReadResponse,
-            Error = zebra_state::BoxError,
-        > + Clone
-        + Send
-        + Sync
-        + 'static,
-    <ReadState as Service<zebra_state::ReadRequest>>::Future: Send,
+    State: StateService,
+    ReadState: ReadStateService,
 {
     let mut mock_sync_status = MockSyncStatus::default();
     mock_sync_status.set_is_close_to_tip(true);

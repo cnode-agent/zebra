@@ -20,7 +20,7 @@ use jsonrpsee::core::RpcResult;
 use jsonrpsee_types::{ErrorCode, ErrorObject};
 use rand::{rngs::OsRng, RngCore};
 use tokio::sync::mpsc::{self, error::TrySendError};
-use tower::{Service, ServiceExt};
+use tower::ServiceExt;
 use zcash_keys::address::Address;
 use zcash_protocol::memo::MemoBytes;
 
@@ -30,8 +30,8 @@ use zebra_chain::{
     block::{
         self, Block, ChainHistoryBlockTxAuthCommitmentHash, MAX_BLOCK_BYTES, ZCASH_BLOCK_VERSION,
     },
-    chain_sync_status::ChainSyncStatus,
-    chain_tip::ChainTip,
+    chain_sync_status::ChainSyncStatusService,
+    chain_tip::ChainTipService,
     parameters::Network,
     serialization::{DateTime32, ZcashDeserializeInto},
     transaction::VerifiedUnminedTx,
@@ -42,8 +42,8 @@ use zebra_chain::{
 use zebra_chain::serialization::BytesInDisplayOrder;
 
 use zebra_consensus::{router::service_trait::BlockVerifierService, MAX_BLOCK_SIGOPS};
-use zebra_node_services::mempool::{self, TransactionDependencies};
-use zebra_state::GetBlockTemplateChainInfo;
+use zebra_node_services::mempool::{self, MempoolService, TransactionDependencies};
+use zebra_state::{GetBlockTemplateChainInfo, ReadState as ReadStateService};
 
 use crate::{
     config::{
@@ -631,7 +631,7 @@ impl CoinbaseCache {
 pub struct GetBlockTemplateHandler<BlockVerifierRouter, SyncStatus>
 where
     BlockVerifierRouter: BlockVerifierService,
-    SyncStatus: ChainSyncStatus + Clone + Send + Sync + 'static,
+    SyncStatus: ChainSyncStatusService,
 {
     /// Miner parameters, including the miner address, data, and memo.
     miner_params: Option<MinerParams>,
@@ -654,7 +654,7 @@ where
 impl<BlockVerifierRouter, SyncStatus> GetBlockTemplateHandler<BlockVerifierRouter, SyncStatus>
 where
     BlockVerifierRouter: BlockVerifierService,
-    SyncStatus: ChainSyncStatus + Clone + Send + Sync + 'static,
+    SyncStatus: ChainSyncStatusService,
 {
     /// Creates a new [`GetBlockTemplateHandler`].
     pub fn new(
@@ -730,7 +730,7 @@ impl<BlockVerifierRouter, SyncStatus> fmt::Debug
     for GetBlockTemplateHandler<BlockVerifierRouter, SyncStatus>
 where
     BlockVerifierRouter: BlockVerifierService,
-    SyncStatus: ChainSyncStatus + Clone + Send + Sync + 'static,
+    SyncStatus: ChainSyncStatusService,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         // Skip fields without debug impls
@@ -798,13 +798,9 @@ pub async fn validate_block_proposal<BlockVerifierRouter, Tip, SyncStatus>(
     sync_status: SyncStatus,
 ) -> RpcResult<GetBlockTemplateResponse>
 where
-    BlockVerifierRouter: Service<zebra_consensus::Request, Response = block::Hash, Error = zebra_consensus::BoxError>
-        + Clone
-        + Send
-        + Sync
-        + 'static,
-    Tip: ChainTip + Clone + Send + Sync + 'static,
-    SyncStatus: ChainSyncStatus + Clone + Send + Sync + 'static,
+    BlockVerifierRouter: BlockVerifierService,
+    Tip: ChainTipService,
+    SyncStatus: ChainSyncStatusService,
 {
     check_synced_to_tip(net, latest_chain_tip, sync_status)?;
 
@@ -855,8 +851,8 @@ pub fn check_synced_to_tip<Tip, SyncStatus>(
     sync_status: SyncStatus,
 ) -> RpcResult<()>
 where
-    Tip: ChainTip + Clone + Send + Sync + 'static,
-    SyncStatus: ChainSyncStatus + Clone + Send + Sync + 'static,
+    Tip: ChainTipService,
+    SyncStatus: ChainSyncStatusService,
 {
     if network.is_a_test_network() {
         return Ok(());
@@ -901,14 +897,7 @@ where
 /// If the state does not have enough blocks, returns an error.
 pub async fn fetch_chain_info<State>(state: State) -> RpcResult<GetBlockTemplateChainInfo>
 where
-    State: Service<
-            zebra_state::ReadRequest,
-            Response = zebra_state::ReadResponse,
-            Error = zebra_state::BoxError,
-        > + Clone
-        + Send
-        + Sync
-        + 'static,
+    State: ReadStateService,
 {
     let request = zebra_state::ReadRequest::ChainInfo;
     let response = state
@@ -934,12 +923,7 @@ pub async fn fetch_mempool_transactions<Mempool>(
     chain_tip_hash: block::Hash,
 ) -> RpcResult<Option<(Vec<VerifiedUnminedTx>, TransactionDependencies)>>
 where
-    Mempool: Service<
-            mempool::Request,
-            Response = mempool::Response,
-            Error = zebra_node_services::BoxError,
-        > + 'static,
-    Mempool::Future: Send,
+    Mempool: MempoolService,
 {
     let response = mempool
         .oneshot(mempool::Request::FullTransactions)

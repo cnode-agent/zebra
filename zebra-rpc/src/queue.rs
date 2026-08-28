@@ -17,20 +17,17 @@ use tokio::{
     time::Instant,
 };
 
-use tower::{Service, ServiceExt};
+use tower::ServiceExt;
 
 use zebra_chain::{
     block::Height,
-    chain_tip::ChainTip,
+    chain_tip::ChainTipService,
     parameters::{Network, NetworkUpgrade},
     transaction::{Transaction, UnminedTx, UnminedTxId},
 };
-use zebra_node_services::{
-    mempool::{Gossip, Request, Response},
-    BoxError,
-};
+use zebra_node_services::mempool::{Gossip, MempoolService, Request, Response};
 
-use zebra_state::{MinedTx, ReadRequest, ReadResponse};
+use zebra_state::{MinedTx, ReadRequest, ReadResponse, ReadState as ReadStateService};
 
 #[cfg(test)]
 mod tests;
@@ -141,13 +138,9 @@ impl Runner {
         tip: Tip,
         network: Network,
     ) where
-        Mempool: Service<Request, Response = Response, Error = BoxError> + Clone + 'static,
-        State: Service<ReadRequest, Response = ReadResponse, Error = zebra_state::BoxError>
-            + Clone
-            + Send
-            + Sync
-            + 'static,
-        Tip: ChainTip + Clone + Send + Sync + 'static,
+        Mempool: MempoolService,
+        State: ReadStateService,
+        Tip: ChainTipService,
     {
         loop {
             // if we don't have a chain use `NO_CHAIN_TIP_HEIGHT` to get block spacing
@@ -251,7 +244,7 @@ impl Runner {
         transactions: HashSet<UnminedTxId>,
     ) -> HashSet<UnminedTxId>
     where
-        Mempool: Service<Request, Response = Response, Error = BoxError> + Clone + 'static,
+        Mempool: MempoolService,
     {
         let mut response = HashSet::new();
 
@@ -278,11 +271,7 @@ impl Runner {
         transactions: HashSet<UnminedTxId>,
     ) -> HashSet<UnminedTxId>
     where
-        State: Service<ReadRequest, Response = ReadResponse, Error = zebra_state::BoxError>
-            + Clone
-            + Send
-            + Sync
-            + 'static,
+        State: ReadStateService,
     {
         let mut response = HashSet::new();
 
@@ -307,7 +296,7 @@ impl Runner {
         transactions: Vec<Arc<Transaction>>,
     ) -> HashSet<UnminedTxId>
     where
-        Mempool: Service<Request, Response = Response, Error = BoxError> + Clone + 'static,
+        Mempool: MempoolService,
     {
         let mut retried = HashSet::new();
 
