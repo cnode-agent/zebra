@@ -229,17 +229,6 @@ impl ConnectedAddr {
         }
     }
 
-    /// Returns a new inbound connected addr from `proxy`.
-    //
-    // TODO: distinguish between direct listeners and proxy listeners in the
-    //       rest of zebra-network
-    #[allow(unused)]
-    pub fn new_inbound_proxy(proxy: SocketAddr) -> ConnectedAddr {
-        InboundProxy {
-            transient_addr: proxy,
-        }
-    }
-
     /// Returns a new isolated connected addr, with no metadata.
     pub fn new_isolated() -> ConnectedAddr {
         Isolated
