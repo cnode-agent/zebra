@@ -23,19 +23,14 @@ pub enum InventoryResponse<A, M> {
 
 impl<A, M> fmt::Display for InventoryResponse<A, M> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.write_str(self.command())
+        f.write_str(match self {
+            Available(_) => "Available",
+            Missing(_) => "Missing",
+        })
     }
 }
 
 impl<A, M> InventoryResponse<A, M> {
-    /// Returns the response status type as a string.
-    pub fn command(&self) -> &'static str {
-        match self {
-            InventoryResponse::Available(_) => "Available",
-            InventoryResponse::Missing(_) => "Missing",
-        }
-    }
-
     /// Returns true if the inventory item was available.
     pub fn is_available(&self) -> bool {
         matches!(self, Available(_))
