@@ -3,6 +3,7 @@
 use std::{collections::HashMap, fmt, ops::Neg, sync::Arc};
 
 use halo2::pasta::{group::ff::PrimeField, pallas};
+use thiserror::Error;
 
 use crate::{
     amount::{DeferredPoolBalanceChange, NegativeAllowed},
@@ -19,7 +20,6 @@ use crate::{
 };
 
 mod commitment;
-mod error;
 mod hash;
 mod header;
 mod height;
@@ -44,6 +44,14 @@ pub use serialize::{SerializedBlock, MAX_BLOCK_BYTES};
 
 #[cfg(any(test, feature = "proptest-impl"))]
 pub use arbitrary::LedgerState;
+
+/// Errors that can occur when checking Block consensus rules.
+#[allow(missing_docs)]
+#[derive(Error, Debug, PartialEq, Eq)]
+pub enum BlockError {
+    #[error("transaction has wrong consensus branch id for block network upgrade")]
+    WrongTransactionConsensusBranchId,
+}
 
 /// A Zcash block, containing a header and a list of transactions.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -127,7 +135,7 @@ impl Block {
     pub fn check_transaction_network_upgrade_consistency(
         &self,
         network: &Network,
-    ) -> Result<(), error::BlockError> {
+    ) -> Result<(), BlockError> {
         let block_nu =
             NetworkUpgrade::current(network, self.coinbase_height().expect("a valid height"));
 
@@ -137,7 +145,7 @@ impl Block {
             .filter_map(|trans| trans.as_ref().network_upgrade())
             .any(|trans_nu| trans_nu != block_nu)
         {
-            return Err(error::BlockError::WrongTransactionConsensusBranchId);
+            return Err(BlockError::WrongTransactionConsensusBranchId);
         }
 
         Ok(())
