@@ -39,7 +39,7 @@ async fn has_spending_transaction_ids() -> Result<()> {
     tracing::info!("committing blocks to non-finalized state");
 
     for block in non_finalized_blocks {
-        use zebra_state::{CommitSemanticallyVerifiedBlockRequest, MappedRequest};
+        use zebra_state::CommitSemanticallyVerifiedBlockRequest;
 
         let expected_hash = block.hash();
         let block = SemanticallyVerifiedBlock::with_hash(Arc::new(block), expected_hash);

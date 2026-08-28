@@ -9,8 +9,6 @@ use std::{collections::HashMap, path::PathBuf};
 use serde::{Deserialize, Serialize};
 use zebra_rpc::config::mining::{default_miner_address, MinerAddressType};
 
-use crate::components::With;
-
 /// Centralized, case-insensitive suffix-based deny-list to ban setting config fields with
 /// environment variables if those config field names end with any of these suffixes.
 const DENY_CONFIG_KEY_SUFFIX_LIST: [&str; 5] = [
@@ -188,8 +186,10 @@ impl ZebradConfig {
     }
 }
 
-impl With<MinerAddressType> for ZebradConfig {
-    fn with(mut self, miner_address_type: MinerAddressType) -> Self {
+impl ZebradConfig {
+    /// Consumes `self`, sets the mining address to the default address of
+    /// `miner_address_type` for the configured network, and returns the updated config.
+    pub fn with_miner_address(mut self, miner_address_type: MinerAddressType) -> Self {
         self.mining.miner_address = Some(
             default_miner_address(self.network.network.kind(), &miner_address_type)
                 .parse()

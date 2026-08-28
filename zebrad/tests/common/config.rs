@@ -19,7 +19,7 @@ use zebra_chain::parameters::Network;
 use zebra_rpc::config::mining::MinerAddressType;
 use zebra_test::{command::TestChild, net::random_known_port};
 use zebrad::{
-    components::{mempool, sync, tracing, With},
+    components::{mempool, sync, tracing},
     config::ZebradConfig,
 };
 
@@ -71,7 +71,7 @@ pub fn default_test_config(net: &Network) -> ZebradConfig {
         tracing,
         ..ZebradConfig::default()
     }
-    .with(MinerAddressType::Transparent)
+    .with_miner_address(MinerAddressType::Transparent)
 }
 
 pub fn persistent_test_config(network: &Network) -> Result<ZebradConfig> {

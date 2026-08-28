@@ -6,10 +6,7 @@ use color_eyre::eyre::Result;
 use zebra_chain::parameters::{testnet::ConfiguredActivationHeights, Network, NetworkKind};
 use zebra_rpc::config::mining::MinerAddressType;
 use zebra_test::net::random_known_port;
-use zebrad::{
-    components::{mempool, With},
-    config::ZebradConfig,
-};
+use zebrad::{components::mempool, config::ZebradConfig};
 
 use super::TEST_ZCASHD_PATH;
 use crate::common::config::default_test_config;
@@ -57,7 +54,7 @@ pub fn build_zcashd_compat_config(work_dir: PathBuf) -> Result<ZcashdCompatConfi
     let zebra_rpc_addr: SocketAddr = format!("127.0.0.1:{zebra_rpc_port}").parse()?;
     let zcashd_own_rpc_addr: SocketAddr = format!("127.0.0.1:{zcashd_own_rpc_port}").parse()?;
 
-    let mut config = default_test_config(&net).with(MinerAddressType::Transparent);
+    let mut config = default_test_config(&net).with_miner_address(MinerAddressType::Transparent);
 
     // A fixed miner address for blocks mined via `generate`. Wallet tests fund
     // the sidecar wallet separately, via `generatetoaddress`.

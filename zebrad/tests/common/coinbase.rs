@@ -14,7 +14,6 @@ use zebra_consensus::difficulty_is_valid;
 use zebra_node_services::rpc_client::RpcRequestClient;
 use zebra_rpc::{config::mining::MinerAddressType, server::OPENED_RPC_ENDPOINT_MSG};
 use zebra_test::args;
-use zebrad::components::With;
 
 use super::{
     config::{os_assigned_rpc_port_config, read_listen_addr_from_logs, testdir},
@@ -40,7 +39,7 @@ pub(crate) async fn regtest_coinbase() -> eyre::Result<()> {
             .into(),
         );
 
-        let mut config = os_assigned_rpc_port_config(false, &net)?.with(addr_type);
+        let mut config = os_assigned_rpc_port_config(false, &net)?.with_miner_address(addr_type);
         config.mempool.debug_enable_at_height = Some(0);
 
         let mut zebrad = testdir()?
