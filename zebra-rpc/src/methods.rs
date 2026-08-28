@@ -3849,16 +3849,6 @@ impl GetAddressBalanceRequest {
     pub fn new(addresses: Vec<String>) -> GetAddressBalanceRequest {
         GetAddressBalanceRequest { addresses }
     }
-
-    /// Creates a new [`AddressStrings`] from a given vector, returns an error if any addresses are incorrect.
-    #[deprecated(
-        note = "Use `AddressStrings::new` instead. Validity will be checked by the server."
-    )]
-    pub fn new_valid(addresses: Vec<String>) -> Result<GetAddressBalanceRequest> {
-        let req = Self { addresses };
-        req.valid_addresses()?;
-        Ok(req)
-    }
 }
 
 /// The transparent balance of a set of addresses.

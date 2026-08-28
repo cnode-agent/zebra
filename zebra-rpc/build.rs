@@ -10,8 +10,6 @@ const ZALLET_COMMIT: Option<&str> = Some("027e5e2139b2ca8f0317edb9d802b03a46e9aa
 
 // Zaino last tested commit - https://github.com/zingolabs/zaino/commit/559510ffcc62a5a6e7bb20db5e3329654542c8b1
 // TODO: Zaino is not currently built by this build script.
-#[allow(dead_code)]
-const ZAINO_COMMIT: Option<&str> = Some("559510ffcc62a5a6e7bb20db5e3329654542c8b1");
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     build_or_copy_proto()?;
