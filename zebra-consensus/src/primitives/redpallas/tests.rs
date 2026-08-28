@@ -8,7 +8,9 @@ use std::time::Duration;
 
 use color_eyre::eyre::{eyre, Result};
 use futures::stream::{FuturesUnordered, StreamExt};
-use tower::ServiceExt;
+use rand::thread_rng;
+use tower::{Service, ServiceExt};
+use tower_batch_control::Batch;
 
 use zebra_chain::primitives::reddsa::{
     orchard::{Binding, SpendAuth},

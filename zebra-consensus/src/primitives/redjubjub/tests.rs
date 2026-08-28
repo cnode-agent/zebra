@@ -8,7 +8,10 @@ use std::time::Duration;
 
 use color_eyre::eyre::{eyre, Result};
 use futures::stream::{FuturesUnordered, StreamExt};
-use tower::ServiceExt;
+use rand::thread_rng;
+use tower::{Service, ServiceExt};
+use tower_batch_control::Batch;
+use zebra_chain::primitives::redjubjub::{Binding, SigningKey, SpendAuth, VerificationKey};
 
 async fn sign_and_verify<V>(mut verifier: V, n: usize) -> Result<(), V::Error>
 where

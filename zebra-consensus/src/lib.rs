@@ -58,6 +58,7 @@ pub use config::Config;
 pub use error::BlockError;
 pub use primitives::{
     ed25519, groth16, halo2, redjubjub, redpallas, sapling::prover as sapling_prover,
+    signature_verifier,
 };
 pub use router::RouterError;
 
