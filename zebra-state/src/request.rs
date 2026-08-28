@@ -26,12 +26,10 @@ use zebra_chain::{
 #[allow(unused_imports)]
 use crate::{
     constants::{MAX_FIND_BLOCK_HASHES_RESULTS, MAX_FIND_BLOCK_HEADERS_RESULTS},
-    ReadResponse, Response,
+    error::{InvalidateError, ReconsiderError},
+    AwaitUtxoError, CommitCheckpointVerifiedError, ReadResponse, Response,
 };
-use crate::{
-    error::{InvalidateError, LayeredStateError, ReconsiderError},
-    AwaitUtxoError, CommitCheckpointVerifiedError, CommitSemanticallyVerifiedError,
-};
+use crate::{error::LayeredStateError, CommitSemanticallyVerifiedError};
 
 /// The per-pool nullifier types used by the indexer-only [`Spend`] enum, imported here rather than
 /// in the shared import block because they are only referenced under the `indexer` feature.
@@ -633,145 +631,34 @@ impl DerefMut for CheckpointVerifiedBlock {
     }
 }
 
-/// Helper trait for convenient access to expected response and error types.
-pub trait MappedRequest: Sized + Send + 'static {
-    /// Expected response type for this state request.
-    type MappedResponse;
-    /// Expected error type for this state request.
-    type Error: std::error::Error + std::fmt::Display + 'static;
-
-    /// Maps the request type to a [`Request`].
-    fn map_request(self) -> Request;
-
-    /// Maps the expected [`Response`] variant for this request to the mapped response type.
-    fn map_response(response: Response) -> Self::MappedResponse;
-
-    /// Accepts a state service to call, maps this request to a [`Request`], waits for the state to be ready,
-    /// calls the state with the mapped request, then maps the success or error response to the expected response
-    /// or error type for this request.
-    ///
-    /// Returns a [`Result<MappedResponse, LayeredServicesError<RequestError>>`].
-    #[allow(async_fn_in_trait)]
-    async fn mapped_oneshot<State>(
-        self,
-        state: &mut State,
-    ) -> Result<Self::MappedResponse, LayeredStateError<Self::Error>>
-    where
-        State: Service<Request, Response = Response, Error = BoxError>,
-        State::Future: Send,
-    {
-        let response = state.ready().await?.call(self.map_request()).await?;
-        Ok(Self::map_response(response))
-    }
-}
-
 /// Performs contextual validation of the given semantically verified block,
 /// committing it to the state if successful.
 ///
 /// See the [`crate`] documentation and [`Request::CommitSemanticallyVerifiedBlock`] for details.
 pub struct CommitSemanticallyVerifiedBlockRequest(pub SemanticallyVerifiedBlock);
 
-impl MappedRequest for CommitSemanticallyVerifiedBlockRequest {
-    type MappedResponse = block::Hash;
-    type Error = CommitSemanticallyVerifiedError;
+impl CommitSemanticallyVerifiedBlockRequest {
+    /// Accepts a state service to call, maps this request to a [`Request`], waits for the state to
+    /// be ready, calls the state with the mapped request, then maps the success or error response
+    /// to the expected response or error type for this request.
+    pub async fn mapped_oneshot<State>(
+        self,
+        state: &mut State,
+    ) -> Result<block::Hash, LayeredStateError<CommitSemanticallyVerifiedError>>
+    where
+        State: Service<Request, Response = Response, Error = BoxError>,
+        State::Future: Send,
+    {
+        let response = state
+            .ready()
+            .await?
+            .call(Request::CommitSemanticallyVerifiedBlock(self.0))
+            .await?;
 
-    fn map_request(self) -> Request {
-        Request::CommitSemanticallyVerifiedBlock(self.0)
-    }
-
-    fn map_response(response: Response) -> Self::MappedResponse {
-        match response {
+        Ok(match response {
             Response::Committed(hash) => hash,
             _ => unreachable!("wrong response variant for request"),
-        }
-    }
-}
-
-/// Commit a checkpointed block to the state
-///
-/// See the [`crate`] documentation and [`Request::CommitCheckpointVerifiedBlock`] for details.
-#[allow(dead_code)]
-pub struct CommitCheckpointVerifiedBlockRequest(pub CheckpointVerifiedBlock);
-
-impl MappedRequest for CommitCheckpointVerifiedBlockRequest {
-    type MappedResponse = block::Hash;
-    type Error = CommitCheckpointVerifiedError;
-
-    fn map_request(self) -> Request {
-        Request::CommitCheckpointVerifiedBlock(self.0)
-    }
-
-    fn map_response(response: Response) -> Self::MappedResponse {
-        match response {
-            Response::Committed(hash) => hash,
-            _ => unreachable!("wrong response variant for request"),
-        }
-    }
-}
-
-/// Request to invalidate a block in the state.
-///
-/// See the [`crate`] documentation and [`Request::InvalidateBlock`] for details.
-#[allow(dead_code)]
-pub struct InvalidateBlockRequest(pub block::Hash);
-
-impl MappedRequest for InvalidateBlockRequest {
-    type MappedResponse = block::Hash;
-    type Error = InvalidateError;
-
-    fn map_request(self) -> Request {
-        Request::InvalidateBlock(self.0)
-    }
-
-    fn map_response(response: Response) -> Self::MappedResponse {
-        match response {
-            Response::Invalidated(hash) => hash,
-            _ => unreachable!("wrong response variant for request"),
-        }
-    }
-}
-
-/// Request to reconsider a previously invalidated block and re-commit it to the state.
-///
-/// See the [`crate`] documentation and [`Request::ReconsiderBlock`] for details.
-#[allow(dead_code)]
-pub struct ReconsiderBlockRequest(pub block::Hash);
-
-impl MappedRequest for ReconsiderBlockRequest {
-    type MappedResponse = Vec<block::Hash>;
-    type Error = ReconsiderError;
-
-    fn map_request(self) -> Request {
-        Request::ReconsiderBlock(self.0)
-    }
-
-    fn map_response(response: Response) -> Self::MappedResponse {
-        match response {
-            Response::Reconsidered(hashes) => hashes,
-            _ => unreachable!("wrong response variant for request"),
-        }
-    }
-}
-
-/// Request a UTXO, waiting for it to arrive if it is not yet available.
-///
-/// See the [`crate`] documentation and [`Request::AwaitUtxo`] for details.
-#[allow(dead_code)]
-pub struct AwaitUtxoRequest(pub transparent::OutPoint);
-
-impl MappedRequest for AwaitUtxoRequest {
-    type MappedResponse = transparent::Utxo;
-    type Error = AwaitUtxoError;
-
-    fn map_request(self) -> Request {
-        Request::AwaitUtxo(self.0)
-    }
-
-    fn map_response(response: Response) -> Self::MappedResponse {
-        match response {
-            Response::Utxo(utxo) => utxo,
-            _ => unreachable!("wrong response variant for request"),
-        }
+        })
     }
 }
 

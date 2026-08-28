@@ -741,7 +741,6 @@ impl NonFinalizedState {
     }
 
     /// Returns the tip of the best chain.
-    #[cfg(any(test, feature = "proptest-impl"))]
     pub fn best_tip(&self) -> Option<(block::Height, block::Hash)> {
         let best_chain = self.best_chain()?;
         let height = best_chain.non_finalized_tip_height();
