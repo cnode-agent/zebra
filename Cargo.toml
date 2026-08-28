@@ -338,6 +338,10 @@ unexpected_cfgs = { level = "warn", check-cfg = [
 unsafe_code = "deny"
 non_ascii_idents = "deny"
 
+# Dead code must not accumulate: every exception needs an explicit, scoped
+# allow (or a cfg gate) so the lint keeps its meaning.
+dead_code = "deny"
+
 # Compatibility
 rust_2021_compatibility = { level = "warn", priority = -1 }
 nonstandard_style = { level = "warn", priority = -1 }
