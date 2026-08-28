@@ -201,7 +201,7 @@ where
     /// than constructing multiple verification services for the same network. To
     /// clone a CheckpointVerifier, you might need to wrap it in a
     /// `tower::Buffer` service.
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn new(
         network: &Network,
         initial_tip: Option<(block::Height, block::Hash)>,
@@ -229,7 +229,7 @@ where
     /// details.
     ///
     /// This function is designed for use in tests.
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub(crate) fn from_list(
         list: impl IntoIterator<Item = (block::Height, block::Hash)>,
         network: &Network,
