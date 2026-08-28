@@ -12,20 +12,20 @@ use color_eyre::Report;
 use futures::{stream::FuturesUnordered, StreamExt};
 use thread_priority::{ThreadBuilder, ThreadPriority};
 use tokio::{select, sync::watch, task::JoinHandle, time::sleep};
-use tower::Service;
 use tracing::{Instrument, Span};
 
 use zebra_chain::{
-    block::{self, Block},
-    chain_sync_status::ChainSyncStatus,
-    chain_tip::ChainTip,
+    block::Block,
+    chain_sync_status::ChainSyncStatusService,
+    chain_tip::ChainTipService,
     diagnostic::task::WaitForPanics,
     serialization::{AtLeastOne, ZcashSerialize},
     shutdown::is_shutting_down,
     work::equihash::{Solution, SolverCancelled},
 };
-use zebra_network::AddressBookPeers;
-use zebra_node_services::mempool;
+use zebra_consensus::router::service_trait::BlockVerifierService;
+use zebra_network::address_book_peers::AddressBookService;
+use zebra_node_services::mempool::MempoolService;
 use zebra_rpc::{
     client::{
         BlockTemplateTimeSource,
@@ -37,7 +37,7 @@ use zebra_rpc::{
     methods::{RpcImpl, RpcServer},
     proposal_block_from_template,
 };
-use zebra_state::WatchReceiver;
+use zebra_state::{ReadState as ReadStateService, State as StateService, WatchReceiver};
 
 use crate::components::metrics::Config;
 
@@ -63,44 +63,14 @@ pub fn spawn_init<Mempool, State, ReadState, Tip, AddressBook, BlockVerifierRout
     config: &Config,
     rpc: RpcImpl<Mempool, State, ReadState, Tip, AddressBook, BlockVerifierRouter, SyncStatus>,
 ) -> JoinHandle<Result<(), Report>>
-// TODO: simplify or avoid repeating these generics (how?)
 where
-    Mempool: Service<
-            mempool::Request,
-            Response = mempool::Response,
-            Error = zebra_node_services::BoxError,
-        > + Clone
-        + Send
-        + Sync
-        + 'static,
-    Mempool::Future: Send,
-    State: Service<
-            zebra_state::Request,
-            Response = zebra_state::Response,
-            Error = zebra_state::BoxError,
-        > + Clone
-        + Send
-        + Sync
-        + 'static,
-    <State as Service<zebra_state::Request>>::Future: Send,
-    ReadState: Service<
-            zebra_state::ReadRequest,
-            Response = zebra_state::ReadResponse,
-            Error = zebra_state::BoxError,
-        > + Clone
-        + Send
-        + Sync
-        + 'static,
-    <ReadState as Service<zebra_state::ReadRequest>>::Future: Send,
-    Tip: ChainTip + Clone + Send + Sync + 'static,
-    BlockVerifierRouter: Service<zebra_consensus::Request, Response = block::Hash, Error = zebra_consensus::BoxError>
-        + Clone
-        + Send
-        + Sync
-        + 'static,
-    <BlockVerifierRouter as Service<zebra_consensus::Request>>::Future: Send,
-    SyncStatus: ChainSyncStatus + Clone + Send + Sync + 'static,
-    AddressBook: AddressBookPeers + Clone + Send + Sync + 'static,
+    Mempool: MempoolService,
+    State: StateService,
+    ReadState: ReadStateService,
+    Tip: ChainTipService,
+    AddressBook: AddressBookService,
+    BlockVerifierRouter: BlockVerifierService,
+    SyncStatus: ChainSyncStatusService,
 {
     // TODO: spawn an entirely new executor here, so mining is isolated from higher priority tasks.
     tokio::spawn(init(config.clone(), rpc).in_current_span())
@@ -117,42 +87,13 @@ pub async fn init<Mempool, State, ReadState, Tip, BlockVerifierRouter, SyncStatu
     rpc: RpcImpl<Mempool, State, ReadState, Tip, AddressBook, BlockVerifierRouter, SyncStatus>,
 ) -> Result<(), Report>
 where
-    Mempool: Service<
-            mempool::Request,
-            Response = mempool::Response,
-            Error = zebra_node_services::BoxError,
-        > + Clone
-        + Send
-        + Sync
-        + 'static,
-    Mempool::Future: Send,
-    State: Service<
-            zebra_state::Request,
-            Response = zebra_state::Response,
-            Error = zebra_state::BoxError,
-        > + Clone
-        + Send
-        + Sync
-        + 'static,
-    <State as Service<zebra_state::Request>>::Future: Send,
-    ReadState: Service<
-            zebra_state::ReadRequest,
-            Response = zebra_state::ReadResponse,
-            Error = zebra_state::BoxError,
-        > + Clone
-        + Send
-        + Sync
-        + 'static,
-    <ReadState as Service<zebra_state::ReadRequest>>::Future: Send,
-    Tip: ChainTip + Clone + Send + Sync + 'static,
-    BlockVerifierRouter: Service<zebra_consensus::Request, Response = block::Hash, Error = zebra_consensus::BoxError>
-        + Clone
-        + Send
-        + Sync
-        + 'static,
-    <BlockVerifierRouter as Service<zebra_consensus::Request>>::Future: Send,
-    SyncStatus: ChainSyncStatus + Clone + Send + Sync + 'static,
-    AddressBook: AddressBookPeers + Clone + Send + Sync + 'static,
+    Mempool: MempoolService,
+    State: StateService,
+    ReadState: ReadStateService,
+    Tip: ChainTipService,
+    AddressBook: AddressBookService,
+    BlockVerifierRouter: BlockVerifierService,
+    SyncStatus: ChainSyncStatusService,
 {
     // TODO: change this to `config.internal_miner_threads` once mining tasks are cancelled when the best tip changes (#8797)
     let configured_threads = 1;
@@ -236,42 +177,13 @@ pub async fn generate_block_templates<
     template_sender: watch::Sender<Option<Arc<Block>>>,
 ) -> Result<(), Report>
 where
-    Mempool: Service<
-            mempool::Request,
-            Response = mempool::Response,
-            Error = zebra_node_services::BoxError,
-        > + Clone
-        + Send
-        + Sync
-        + 'static,
-    Mempool::Future: Send,
-    State: Service<
-            zebra_state::Request,
-            Response = zebra_state::Response,
-            Error = zebra_state::BoxError,
-        > + Clone
-        + Send
-        + Sync
-        + 'static,
-    <State as Service<zebra_state::Request>>::Future: Send,
-    ReadState: Service<
-            zebra_state::ReadRequest,
-            Response = zebra_state::ReadResponse,
-            Error = zebra_state::BoxError,
-        > + Clone
-        + Send
-        + Sync
-        + 'static,
-    <ReadState as Service<zebra_state::ReadRequest>>::Future: Send,
-    Tip: ChainTip + Clone + Send + Sync + 'static,
-    BlockVerifierRouter: Service<zebra_consensus::Request, Response = block::Hash, Error = zebra_consensus::BoxError>
-        + Clone
-        + Send
-        + Sync
-        + 'static,
-    <BlockVerifierRouter as Service<zebra_consensus::Request>>::Future: Send,
-    SyncStatus: ChainSyncStatus + Clone + Send + Sync + 'static,
-    AddressBook: AddressBookPeers + Clone + Send + Sync + 'static,
+    Mempool: MempoolService,
+    State: StateService,
+    ReadState: ReadStateService,
+    Tip: ChainTipService,
+    AddressBook: AddressBookService,
+    BlockVerifierRouter: BlockVerifierService,
+    SyncStatus: ChainSyncStatusService,
 {
     // Pass the correct arguments, even if Zebra currently ignores them.
     let mut parameters =
@@ -363,42 +275,13 @@ pub async fn run_mining_solver<
     rpc: RpcImpl<Mempool, State, ReadState, Tip, AddressBook, BlockVerifierRouter, SyncStatus>,
 ) -> Result<(), Report>
 where
-    Mempool: Service<
-            mempool::Request,
-            Response = mempool::Response,
-            Error = zebra_node_services::BoxError,
-        > + Clone
-        + Send
-        + Sync
-        + 'static,
-    Mempool::Future: Send,
-    State: Service<
-            zebra_state::Request,
-            Response = zebra_state::Response,
-            Error = zebra_state::BoxError,
-        > + Clone
-        + Send
-        + Sync
-        + 'static,
-    <State as Service<zebra_state::Request>>::Future: Send,
-    ReadState: Service<
-            zebra_state::ReadRequest,
-            Response = zebra_state::ReadResponse,
-            Error = zebra_state::BoxError,
-        > + Clone
-        + Send
-        + Sync
-        + 'static,
-    <ReadState as Service<zebra_state::ReadRequest>>::Future: Send,
-    Tip: ChainTip + Clone + Send + Sync + 'static,
-    BlockVerifierRouter: Service<zebra_consensus::Request, Response = block::Hash, Error = zebra_consensus::BoxError>
-        + Clone
-        + Send
-        + Sync
-        + 'static,
-    <BlockVerifierRouter as Service<zebra_consensus::Request>>::Future: Send,
-    SyncStatus: ChainSyncStatus + Clone + Send + Sync + 'static,
-    AddressBook: AddressBookPeers + Clone + Send + Sync + 'static,
+    Mempool: MempoolService,
+    State: StateService,
+    ReadState: ReadStateService,
+    Tip: ChainTipService,
+    AddressBook: AddressBookService,
+    BlockVerifierRouter: BlockVerifierService,
+    SyncStatus: ChainSyncStatusService,
 {
     // Shut down the task when the template sender is dropped, or Zebra shuts down.
     while template_receiver.has_changed().is_ok() && !is_shutting_down() {
