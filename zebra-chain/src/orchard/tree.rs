@@ -19,7 +19,6 @@ use std::{
 
 use bitvec::prelude::*;
 use halo2::pasta::{group::ff::PrimeField, pallas};
-use hex::ToHex;
 use incrementalmerkletree::{frontier::NonEmptyFrontier, Hashable};
 use lazy_static::lazy_static;
 use thiserror::Error;
@@ -29,7 +28,8 @@ use super::sinsemilla::*;
 
 use crate::{
     serialization::{
-        serde_helpers, ReadZcashExt, SerializationError, ZcashDeserialize, ZcashSerialize,
+        impl_hex_display, serde_helpers, ReadZcashExt, SerializationError, ZcashDeserialize,
+        ZcashSerialize,
     },
     subtree::{NoteCommitmentSubtreeIndex, TRACKED_SUBTREE_HEIGHT},
 };
@@ -216,39 +216,9 @@ impl TryFrom<[u8; 32]> for Node {
     }
 }
 
-impl fmt::Display for Node {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.write_str(&self.encode_hex::<String>())
-    }
-}
-
-impl fmt::Debug for Node {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_tuple("orchard::Node")
-            .field(&self.encode_hex::<String>())
-            .finish()
-    }
-}
-
-impl ToHex for &Node {
-    fn encode_hex<T: FromIterator<char>>(&self) -> T {
-        self.bytes_in_display_order().encode_hex()
-    }
-
-    fn encode_hex_upper<T: FromIterator<char>>(&self) -> T {
-        self.bytes_in_display_order().encode_hex_upper()
-    }
-}
-
-impl ToHex for Node {
-    fn encode_hex<T: FromIterator<char>>(&self) -> T {
-        (&self).encode_hex()
-    }
-
-    fn encode_hex_upper<T: FromIterator<char>>(&self) -> T {
-        (&self).encode_hex_upper()
-    }
-}
+impl_hex_display!(Display for Node);
+impl_hex_display!(Debug for Node, "orchard::Node");
+impl_hex_display!(ToHex for Node, bytes_in_display_order);
 
 /// Required to serialize [`NoteCommitmentTree`]s in a format compatible with `zcashd`.
 ///

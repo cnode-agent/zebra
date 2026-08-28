@@ -1,16 +1,17 @@
 //! Equihash Solution and related items.
 
-use std::{fmt, io};
+use std::io;
 
-use hex::{FromHex, FromHexError, ToHex};
+use hex::{FromHex, FromHexError};
 use serde_big_array::BigArray;
 
 use crate::{
     block::Header,
     parameters::Network,
     serialization::{
-        zcash_deserialize_bytes_external_count, zcash_serialize_bytes, CompactSizeMessage,
-        SerializationError, ZcashDeserialize, ZcashDeserializeInto, ZcashSerialize,
+        impl_hex_display, zcash_deserialize_bytes_external_count, zcash_serialize_bytes,
+        CompactSizeMessage, SerializationError, ZcashDeserialize, ZcashDeserializeInto,
+        ZcashSerialize,
     },
 };
 
@@ -249,13 +250,7 @@ impl PartialEq<Solution> for Solution {
     }
 }
 
-impl fmt::Debug for Solution {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_tuple("EquihashSolution")
-            .field(&hex::encode(self.value()))
-            .finish()
-    }
-}
+impl_hex_display!(Debug for Solution, "EquihashSolution", |solution| solution.value());
 
 // These impls all only exist because of array length restrictions.
 
@@ -301,26 +296,10 @@ impl ZcashDeserialize for Solution {
     }
 }
 
-impl ToHex for &Solution {
-    fn encode_hex<T: FromIterator<char>>(&self) -> T {
-        self.value().encode_hex()
-    }
+impl_hex_display!(ToHex for Solution, value);
 
-    fn encode_hex_upper<T: FromIterator<char>>(&self) -> T {
-        self.value().encode_hex_upper()
-    }
-}
-
-impl ToHex for Solution {
-    fn encode_hex<T: FromIterator<char>>(&self) -> T {
-        (&self).encode_hex()
-    }
-
-    fn encode_hex_upper<T: FromIterator<char>>(&self) -> T {
-        (&self).encode_hex_upper()
-    }
-}
-
+// `FromHex` is hand-written: the solution length is variable (mainnet vs regtest), and
+// decoding it is fallible in a way the fixed-size byte array arms don't model.
 impl FromHex for Solution {
     type Error = FromHexError;
 

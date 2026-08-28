@@ -1,11 +1,11 @@
 //! Bitcoin script for Zebra
 
-use std::{fmt, io};
+use std::io;
 
-use hex::{FromHex, FromHexError, ToHex};
+use hex::{FromHex, FromHexError};
 
 use crate::serialization::{
-    zcash_serialize_bytes, SerializationError, ZcashDeserialize, ZcashSerialize,
+    impl_hex_display, zcash_serialize_bytes, SerializationError, ZcashDeserialize, ZcashSerialize,
 };
 
 /// An encoding of a Bitcoin script.
@@ -48,40 +48,12 @@ impl From<zcash_transparent::address::Script> for Script {
     }
 }
 
-impl fmt::Display for Script {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.write_str(&self.encode_hex::<String>())
-    }
-}
+impl_hex_display!(Display for Script);
+impl_hex_display!(Debug for Script, "Script", |script| &script.0);
+impl_hex_display!(ToHex for Script, as_raw_bytes);
 
-impl fmt::Debug for Script {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_tuple("Script")
-            .field(&hex::encode(&self.0))
-            .finish()
-    }
-}
-
-impl ToHex for &Script {
-    fn encode_hex<T: FromIterator<char>>(&self) -> T {
-        self.as_raw_bytes().encode_hex()
-    }
-
-    fn encode_hex_upper<T: FromIterator<char>>(&self) -> T {
-        self.as_raw_bytes().encode_hex_upper()
-    }
-}
-
-impl ToHex for Script {
-    fn encode_hex<T: FromIterator<char>>(&self) -> T {
-        (&self).encode_hex()
-    }
-
-    fn encode_hex_upper<T: FromIterator<char>>(&self) -> T {
-        (&self).encode_hex_upper()
-    }
-}
-
+// `FromHex` is hand-written: `Script` wraps a variable-length `Vec<u8>` rather than a
+// fixed-size byte array, so it has no display-order byte reversal to parameterise.
 impl FromHex for Script {
     type Error = FromHexError;
 

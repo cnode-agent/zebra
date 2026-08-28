@@ -4,14 +4,12 @@ use NetworkUpgrade::*;
 
 use crate::block;
 use crate::parameters::{Network, Network::*};
-use crate::serialization::BytesInDisplayOrder;
+use crate::serialization::{impl_hex_display, BytesInDisplayOrder};
 
 use std::collections::{BTreeMap, HashMap};
 use std::fmt;
 
 use chrono::{DateTime, Duration, Utc};
-use hex::{FromHex, ToHex};
-
 use strum::{EnumIter, IntoEnumIterator};
 
 #[cfg(any(test, feature = "proptest-impl"))]
@@ -173,40 +171,9 @@ impl From<u32> for ConsensusBranchId {
     }
 }
 
-impl ToHex for &ConsensusBranchId {
-    fn encode_hex<T: FromIterator<char>>(&self) -> T {
-        self.bytes_in_display_order().encode_hex()
-    }
-
-    fn encode_hex_upper<T: FromIterator<char>>(&self) -> T {
-        self.bytes_in_display_order().encode_hex_upper()
-    }
-}
-
-impl ToHex for ConsensusBranchId {
-    fn encode_hex<T: FromIterator<char>>(&self) -> T {
-        self.bytes_in_display_order().encode_hex()
-    }
-
-    fn encode_hex_upper<T: FromIterator<char>>(&self) -> T {
-        self.bytes_in_display_order().encode_hex_upper()
-    }
-}
-
-impl FromHex for ConsensusBranchId {
-    type Error = <[u8; 4] as FromHex>::Error;
-
-    fn from_hex<T: AsRef<[u8]>>(hex: T) -> Result<Self, Self::Error> {
-        let branch = <[u8; 4]>::from_hex(hex)?;
-        Ok(ConsensusBranchId(u32::from_be_bytes(branch)))
-    }
-}
-
-impl fmt::Display for ConsensusBranchId {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.write_str(&self.encode_hex::<String>())
-    }
-}
+impl_hex_display!(ToHex for ConsensusBranchId, bytes_in_display_order);
+impl_hex_display!(FromHex for ConsensusBranchId, from_bytes_in_display_order: 4);
+impl_hex_display!(Display for ConsensusBranchId);
 
 impl TryFrom<ConsensusBranchId> for zcash_protocol::consensus::BranchId {
     type Error = crate::Error;

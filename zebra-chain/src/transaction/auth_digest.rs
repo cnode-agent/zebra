@@ -1,12 +1,10 @@
 //! Authorizing digests for Zcash transactions.
 
-use std::{array::TryFromSliceError, fmt};
-
-use hex::{FromHex, ToHex};
+use std::array::TryFromSliceError;
 
 use crate::serialization::{
-    BytesInDisplayOrder, ReadZcashExt, SerializationError, WriteZcashExt, ZcashDeserialize,
-    ZcashSerialize,
+    impl_hex_display, BytesInDisplayOrder, ReadZcashExt, SerializationError, WriteZcashExt,
+    ZcashDeserialize, ZcashSerialize,
 };
 
 #[cfg(any(test, feature = "proptest-impl"))]
@@ -60,50 +58,10 @@ impl From<&AuthDigest> for [u8; 32] {
     }
 }
 
-impl ToHex for &AuthDigest {
-    fn encode_hex<T: FromIterator<char>>(&self) -> T {
-        self.bytes_in_display_order().encode_hex()
-    }
-
-    fn encode_hex_upper<T: FromIterator<char>>(&self) -> T {
-        self.bytes_in_display_order().encode_hex_upper()
-    }
-}
-
-impl ToHex for AuthDigest {
-    fn encode_hex<T: FromIterator<char>>(&self) -> T {
-        (&self).encode_hex()
-    }
-
-    fn encode_hex_upper<T: FromIterator<char>>(&self) -> T {
-        (&self).encode_hex_upper()
-    }
-}
-
-impl FromHex for AuthDigest {
-    type Error = <[u8; 32] as FromHex>::Error;
-
-    fn from_hex<T: AsRef<[u8]>>(hex: T) -> Result<Self, Self::Error> {
-        let mut hash = <[u8; 32]>::from_hex(hex)?;
-        hash.reverse();
-
-        Ok(hash.into())
-    }
-}
-
-impl fmt::Display for AuthDigest {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.write_str(&self.encode_hex::<String>())
-    }
-}
-
-impl fmt::Debug for AuthDigest {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_tuple("AuthDigest")
-            .field(&self.encode_hex::<String>())
-            .finish()
-    }
-}
+impl_hex_display!(ToHex for AuthDigest, bytes_in_display_order);
+impl_hex_display!(FromHex for AuthDigest, reverse_then_into: 32);
+impl_hex_display!(Display for AuthDigest);
+impl_hex_display!(Debug for AuthDigest, "AuthDigest");
 
 impl std::str::FromStr for AuthDigest {
     type Err = SerializationError;

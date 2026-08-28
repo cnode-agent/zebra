@@ -33,11 +33,9 @@ use std::{fmt, sync::Arc};
 #[cfg(any(test, feature = "proptest-impl"))]
 use proptest_derive::Arbitrary;
 
-use hex::{FromHex, ToHex};
-
 use crate::serialization::{
-    BytesInDisplayOrder, ReadZcashExt, SerializationError, WriteZcashExt, ZcashDeserialize,
-    ZcashSerialize,
+    impl_hex_display, BytesInDisplayOrder, ReadZcashExt, SerializationError, WriteZcashExt,
+    ZcashDeserialize, ZcashSerialize,
 };
 
 use super::{AuthDigest, Transaction};
@@ -112,50 +110,10 @@ impl BytesInDisplayOrder<true> for Hash {
     }
 }
 
-impl ToHex for &Hash {
-    fn encode_hex<T: FromIterator<char>>(&self) -> T {
-        self.bytes_in_display_order().encode_hex()
-    }
-
-    fn encode_hex_upper<T: FromIterator<char>>(&self) -> T {
-        self.bytes_in_display_order().encode_hex_upper()
-    }
-}
-
-impl ToHex for Hash {
-    fn encode_hex<T: FromIterator<char>>(&self) -> T {
-        (&self).encode_hex()
-    }
-
-    fn encode_hex_upper<T: FromIterator<char>>(&self) -> T {
-        (&self).encode_hex_upper()
-    }
-}
-
-impl FromHex for Hash {
-    type Error = <[u8; 32] as FromHex>::Error;
-
-    fn from_hex<T: AsRef<[u8]>>(hex: T) -> Result<Self, Self::Error> {
-        let mut hash = <[u8; 32]>::from_hex(hex)?;
-        hash.reverse();
-
-        Ok(hash.into())
-    }
-}
-
-impl fmt::Display for Hash {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.write_str(&self.encode_hex::<String>())
-    }
-}
-
-impl fmt::Debug for Hash {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_tuple("transaction::Hash")
-            .field(&self.encode_hex::<String>())
-            .finish()
-    }
-}
+impl_hex_display!(ToHex for Hash, bytes_in_display_order);
+impl_hex_display!(FromHex for Hash, reverse_then_into: 32);
+impl_hex_display!(Display for Hash);
+impl_hex_display!(Debug for Hash, "transaction::Hash");
 
 impl std::str::FromStr for Hash {
     type Err = SerializationError;

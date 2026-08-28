@@ -2,9 +2,11 @@
 
 use std::io;
 
-use hex::{FromHex, FromHexError, ToHex};
+use hex::{FromHex, FromHexError};
 
-use crate::serialization::{serde_helpers, SerializationError, ZcashDeserialize, ZcashSerialize};
+use crate::serialization::{
+    impl_hex_display, serde_helpers, SerializationError, ZcashDeserialize, ZcashSerialize,
+};
 
 #[cfg(test)]
 mod test_vectors;
@@ -43,16 +45,11 @@ impl ValueCommitment {
     }
 }
 
-impl ToHex for &ValueCommitment {
-    fn encode_hex<T: FromIterator<char>>(&self) -> T {
-        self.bytes_in_display_order().encode_hex()
-    }
+// `ToHexRef`, not `ToHex`: `ValueCommitment` deliberately has no owned `ToHex` impl.
+impl_hex_display!(ToHexRef for ValueCommitment, bytes_in_display_order);
 
-    fn encode_hex_upper<T: FromIterator<char>>(&self) -> T {
-        self.bytes_in_display_order().encode_hex_upper()
-    }
-}
-
+// `FromHex` is hand-written: it validates the reversed bytes as a Jubjub point via
+// `ZcashDeserialize`, rather than just wrapping them.
 impl FromHex for ValueCommitment {
     type Error = FromHexError;
 

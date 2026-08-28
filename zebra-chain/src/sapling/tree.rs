@@ -12,19 +12,18 @@
 
 use std::{
     default::Default,
-    fmt,
     hash::{Hash, Hasher},
     io,
 };
 
-use hex::ToHex;
 use incrementalmerkletree::frontier::{Frontier, NonEmptyFrontier};
 
 use thiserror::Error;
 
 use crate::{
     serialization::{
-        serde_helpers, ReadZcashExt, SerializationError, ZcashDeserialize, ZcashSerialize,
+        impl_hex_display, serde_helpers, ReadZcashExt, SerializationError, ZcashDeserialize,
+        ZcashSerialize,
     },
     subtree::{NoteCommitmentSubtreeIndex, TRACKED_SUBTREE_HEIGHT},
 };
@@ -58,13 +57,7 @@ impl Root {
     }
 }
 
-impl fmt::Debug for Root {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_tuple("Root")
-            .field(&hex::encode(self.0.to_bytes()))
-            .finish()
-    }
-}
+impl_hex_display!(Debug for Root, "Root", |root| root.0.to_bytes());
 
 impl From<Root> for [u8; 32] {
     fn from(root: Root) -> Self {
@@ -106,25 +99,9 @@ impl TryFrom<[u8; 32]> for Root {
     }
 }
 
-impl ToHex for &Root {
-    fn encode_hex<T: FromIterator<char>>(&self) -> T {
-        <[u8; 32]>::from(*self).encode_hex()
-    }
-
-    fn encode_hex_upper<T: FromIterator<char>>(&self) -> T {
-        <[u8; 32]>::from(*self).encode_hex_upper()
-    }
-}
-
-impl ToHex for Root {
-    fn encode_hex<T: FromIterator<char>>(&self) -> T {
-        (&self).encode_hex()
-    }
-
-    fn encode_hex_upper<T: FromIterator<char>>(&self) -> T {
-        (&self).encode_hex_upper()
-    }
-}
+// Note that this hex-encodes the serialized bytes, *not* `Root::bytes_in_display_order`,
+// which reverses them.
+impl_hex_display!(ToHex for Root, |root| <[u8; 32]>::from(root));
 
 impl ZcashSerialize for Root {
     fn zcash_serialize<W: io::Write>(&self, mut writer: W) -> Result<(), io::Error> {

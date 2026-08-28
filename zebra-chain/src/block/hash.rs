@@ -1,11 +1,11 @@
-use std::{fmt, io, sync::Arc};
+use std::{io, sync::Arc};
 
-use hex::{FromHex, ToHex};
+use hex::FromHex;
 use serde::{Deserialize, Serialize};
 
 use crate::serialization::{
-    sha256d, BytesInDisplayOrder, ReadZcashExt, SerializationError, ZcashDeserialize,
-    ZcashSerialize,
+    impl_hex_display, sha256d, BytesInDisplayOrder, ReadZcashExt, SerializationError,
+    ZcashDeserialize, ZcashSerialize,
 };
 
 use super::Header;
@@ -35,49 +35,10 @@ impl BytesInDisplayOrder<true> for Hash {
     }
 }
 
-impl fmt::Display for Hash {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.write_str(&self.encode_hex::<String>())
-    }
-}
-
-impl fmt::Debug for Hash {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_tuple("block::Hash")
-            .field(&self.encode_hex::<String>())
-            .finish()
-    }
-}
-
-impl ToHex for &Hash {
-    fn encode_hex<T: FromIterator<char>>(&self) -> T {
-        self.bytes_in_display_order().encode_hex()
-    }
-
-    fn encode_hex_upper<T: FromIterator<char>>(&self) -> T {
-        self.bytes_in_display_order().encode_hex_upper()
-    }
-}
-
-impl ToHex for Hash {
-    fn encode_hex<T: FromIterator<char>>(&self) -> T {
-        (&self).encode_hex()
-    }
-
-    fn encode_hex_upper<T: FromIterator<char>>(&self) -> T {
-        (&self).encode_hex_upper()
-    }
-}
-
-impl FromHex for Hash {
-    type Error = <[u8; 32] as FromHex>::Error;
-
-    fn from_hex<T: AsRef<[u8]>>(hex: T) -> Result<Self, Self::Error> {
-        let hash = <[u8; 32]>::from_hex(hex)?;
-
-        Ok(Self::from_bytes_in_display_order(&hash))
-    }
-}
+impl_hex_display!(Display for Hash);
+impl_hex_display!(Debug for Hash, "block::Hash");
+impl_hex_display!(ToHex for Hash, bytes_in_display_order);
+impl_hex_display!(FromHex for Hash, from_bytes_in_display_order: 32);
 
 impl From<[u8; 32]> for Hash {
     fn from(bytes: [u8; 32]) -> Self {

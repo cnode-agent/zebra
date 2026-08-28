@@ -17,9 +17,14 @@ use std::{
     ops::{Add, Div, Mul},
 };
 
-use hex::{FromHex, ToHex};
+use hex::FromHex;
 
-use crate::{block, parameters::Network, serialization::BytesInDisplayOrder, BoxError};
+use crate::{
+    block,
+    parameters::Network,
+    serialization::{impl_hex_display, BytesInDisplayOrder},
+    BoxError,
+};
 
 pub use crate::work::u256::U256;
 
@@ -350,32 +355,12 @@ impl fmt::Debug for CompactDifficulty {
     }
 }
 
-impl fmt::Display for CompactDifficulty {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.write_str(&self.encode_hex::<String>())
-    }
-}
+impl_hex_display!(Display for CompactDifficulty);
+impl_hex_display!(ToHex for CompactDifficulty, bytes_in_display_order);
 
-impl ToHex for &CompactDifficulty {
-    fn encode_hex<T: FromIterator<char>>(&self) -> T {
-        self.bytes_in_display_order().encode_hex()
-    }
-
-    fn encode_hex_upper<T: FromIterator<char>>(&self) -> T {
-        self.bytes_in_display_order().encode_hex_upper()
-    }
-}
-
-impl ToHex for CompactDifficulty {
-    fn encode_hex<T: FromIterator<char>>(&self) -> T {
-        (&self).encode_hex()
-    }
-
-    fn encode_hex_upper<T: FromIterator<char>>(&self) -> T {
-        (&self).encode_hex_upper()
-    }
-}
-
+// `FromHex` is hand-written: `CompactDifficulty::from_bytes_in_display_order` is an
+// inherent method that rejects invalid difficulties, so this impl is fallible for a
+// reason unrelated to hex decoding.
 impl FromHex for CompactDifficulty {
     type Error = BoxError;
 
@@ -507,51 +492,10 @@ impl ExpandedDifficulty {
     }
 }
 
-impl fmt::Display for ExpandedDifficulty {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.write_str(&self.encode_hex::<String>())
-    }
-}
-
-impl fmt::Debug for ExpandedDifficulty {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_tuple("ExpandedDifficulty")
-            .field(&self.encode_hex::<String>())
-            .finish()
-    }
-}
-
-impl ToHex for &ExpandedDifficulty {
-    fn encode_hex<T: FromIterator<char>>(&self) -> T {
-        self.bytes_in_display_order().encode_hex()
-    }
-
-    fn encode_hex_upper<T: FromIterator<char>>(&self) -> T {
-        self.bytes_in_display_order().encode_hex_upper()
-    }
-}
-
-impl ToHex for ExpandedDifficulty {
-    fn encode_hex<T: FromIterator<char>>(&self) -> T {
-        (&self).encode_hex()
-    }
-
-    fn encode_hex_upper<T: FromIterator<char>>(&self) -> T {
-        (&self).encode_hex_upper()
-    }
-}
-
-impl FromHex for ExpandedDifficulty {
-    type Error = <[u8; 32] as FromHex>::Error;
-
-    fn from_hex<T: AsRef<[u8]>>(hex: T) -> Result<Self, Self::Error> {
-        let bytes_in_display_order = <[u8; 32]>::from_hex(hex)?;
-
-        Ok(ExpandedDifficulty::from_bytes_in_display_order(
-            &bytes_in_display_order,
-        ))
-    }
-}
+impl_hex_display!(Display for ExpandedDifficulty);
+impl_hex_display!(Debug for ExpandedDifficulty, "ExpandedDifficulty");
+impl_hex_display!(ToHex for ExpandedDifficulty, bytes_in_display_order);
+impl_hex_display!(FromHex for ExpandedDifficulty, from_bytes_in_display_order: 32);
 
 impl From<U256> for ExpandedDifficulty {
     fn from(value: U256) -> Self {

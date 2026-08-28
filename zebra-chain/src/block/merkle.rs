@@ -1,11 +1,9 @@
 //! The Bitcoin-inherited Merkle tree of transactions.
 
-use std::{fmt, io::Write};
-
-use hex::{FromHex, ToHex};
+use std::io::Write;
 
 use crate::{
-    serialization::{sha256d, BytesInDisplayOrder},
+    serialization::{impl_hex_display, sha256d, BytesInDisplayOrder},
     transaction::{self, Transaction, UnminedTx, UnminedTxId, VerifiedUnminedTx},
 };
 
@@ -73,11 +71,7 @@ use proptest_derive::Arbitrary;
 #[cfg_attr(any(test, feature = "proptest-impl"), derive(Arbitrary, Default))]
 pub struct Root(pub [u8; 32]);
 
-impl fmt::Debug for Root {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_tuple("Root").field(&hex::encode(self.0)).finish()
-    }
-}
+impl_hex_display!(Debug for Root, "Root", |root| root.0);
 
 impl From<[u8; 32]> for Root {
     fn from(hash: [u8; 32]) -> Self {
@@ -101,36 +95,8 @@ impl BytesInDisplayOrder<true> for Root {
     }
 }
 
-impl ToHex for &Root {
-    fn encode_hex<T: FromIterator<char>>(&self) -> T {
-        self.bytes_in_display_order().encode_hex()
-    }
-
-    fn encode_hex_upper<T: FromIterator<char>>(&self) -> T {
-        self.bytes_in_display_order().encode_hex_upper()
-    }
-}
-
-impl ToHex for Root {
-    fn encode_hex<T: FromIterator<char>>(&self) -> T {
-        (&self).encode_hex()
-    }
-
-    fn encode_hex_upper<T: FromIterator<char>>(&self) -> T {
-        (&self).encode_hex_upper()
-    }
-}
-
-impl FromHex for Root {
-    type Error = <[u8; 32] as FromHex>::Error;
-
-    fn from_hex<T: AsRef<[u8]>>(hex: T) -> Result<Self, Self::Error> {
-        let mut hash = <[u8; 32]>::from_hex(hex)?;
-        hash.reverse();
-
-        Ok(hash.into())
-    }
-}
+impl_hex_display!(ToHex for Root, bytes_in_display_order);
+impl_hex_display!(FromHex for Root, reverse_then_into: 32);
 
 fn hash(h1: &[u8; 32], h2: &[u8; 32]) -> [u8; 32] {
     let mut w = sha256d::Writer::default();
@@ -238,13 +204,7 @@ impl std::iter::FromIterator<transaction::Hash> for Root {
 #[cfg_attr(any(test, feature = "proptest-impl"), derive(Arbitrary))]
 pub struct AuthDataRoot(pub(crate) [u8; 32]);
 
-impl fmt::Debug for AuthDataRoot {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_tuple("AuthRoot")
-            .field(&hex::encode(self.0))
-            .finish()
-    }
-}
+impl_hex_display!(Debug for AuthDataRoot, "AuthRoot", |root| root.0);
 
 impl From<[u8; 32]> for AuthDataRoot {
     fn from(hash: [u8; 32]) -> Self {
@@ -268,36 +228,8 @@ impl BytesInDisplayOrder<true> for AuthDataRoot {
     }
 }
 
-impl ToHex for &AuthDataRoot {
-    fn encode_hex<T: FromIterator<char>>(&self) -> T {
-        self.bytes_in_display_order().encode_hex()
-    }
-
-    fn encode_hex_upper<T: FromIterator<char>>(&self) -> T {
-        self.bytes_in_display_order().encode_hex_upper()
-    }
-}
-
-impl ToHex for AuthDataRoot {
-    fn encode_hex<T: FromIterator<char>>(&self) -> T {
-        (&self).encode_hex()
-    }
-
-    fn encode_hex_upper<T: FromIterator<char>>(&self) -> T {
-        (&self).encode_hex_upper()
-    }
-}
-
-impl FromHex for AuthDataRoot {
-    type Error = <[u8; 32] as FromHex>::Error;
-
-    fn from_hex<T: AsRef<[u8]>>(hex: T) -> Result<Self, Self::Error> {
-        let mut hash = <[u8; 32]>::from_hex(hex)?;
-        hash.reverse();
-
-        Ok(hash.into())
-    }
-}
+impl_hex_display!(ToHex for AuthDataRoot, bytes_in_display_order);
+impl_hex_display!(FromHex for AuthDataRoot, reverse_then_into: 32);
 
 /// The placeholder used for the [`AuthDigest`](transaction::AuthDigest) of pre-v5 transactions.
 ///

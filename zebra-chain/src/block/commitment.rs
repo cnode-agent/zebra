@@ -1,8 +1,5 @@
 //! The Commitment enum, used for the corresponding block header field.
 
-use std::fmt;
-
-use hex::{FromHex, ToHex};
 use thiserror::Error;
 
 use crate::{
@@ -12,7 +9,7 @@ use crate::{
         NetworkUpgrade::{self, *},
     },
     sapling,
-    serialization::BytesInDisplayOrder,
+    serialization::{impl_hex_display, BytesInDisplayOrder},
 };
 
 /// Zcash blocks contain different kinds of commitments to their contents,
@@ -175,19 +172,8 @@ impl Commitment {
 #[derive(Clone, Copy, Eq, PartialEq, Serialize, Deserialize, Default)]
 pub struct ChainHistoryMmrRootHash([u8; 32]);
 
-impl fmt::Display for ChainHistoryMmrRootHash {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.write_str(&self.encode_hex::<String>())
-    }
-}
-
-impl fmt::Debug for ChainHistoryMmrRootHash {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_tuple("ChainHistoryMmrRootHash")
-            .field(&self.encode_hex::<String>())
-            .finish()
-    }
-}
+impl_hex_display!(Display for ChainHistoryMmrRootHash);
+impl_hex_display!(Debug for ChainHistoryMmrRootHash, "ChainHistoryMmrRootHash");
 
 impl From<[u8; 32]> for ChainHistoryMmrRootHash {
     fn from(hash: [u8; 32]) -> Self {
@@ -211,36 +197,8 @@ impl BytesInDisplayOrder<true> for ChainHistoryMmrRootHash {
     }
 }
 
-impl ToHex for &ChainHistoryMmrRootHash {
-    fn encode_hex<T: FromIterator<char>>(&self) -> T {
-        self.bytes_in_display_order().encode_hex()
-    }
-
-    fn encode_hex_upper<T: FromIterator<char>>(&self) -> T {
-        self.bytes_in_display_order().encode_hex_upper()
-    }
-}
-
-impl ToHex for ChainHistoryMmrRootHash {
-    fn encode_hex<T: FromIterator<char>>(&self) -> T {
-        (&self).encode_hex()
-    }
-
-    fn encode_hex_upper<T: FromIterator<char>>(&self) -> T {
-        (&self).encode_hex_upper()
-    }
-}
-
-impl FromHex for ChainHistoryMmrRootHash {
-    type Error = <[u8; 32] as FromHex>::Error;
-
-    fn from_hex<T: AsRef<[u8]>>(hex: T) -> Result<Self, Self::Error> {
-        let mut hash = <[u8; 32]>::from_hex(hex)?;
-        hash.reverse();
-
-        Ok(hash.into())
-    }
-}
+impl_hex_display!(ToHex for ChainHistoryMmrRootHash, bytes_in_display_order);
+impl_hex_display!(FromHex for ChainHistoryMmrRootHash, reverse_then_into: 32);
 
 /// A block commitment to chain history and transaction auth.
 /// - the chain history tree for all ancestors in the current network upgrade,
@@ -251,19 +209,11 @@ impl FromHex for ChainHistoryMmrRootHash {
 #[derive(Clone, Copy, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ChainHistoryBlockTxAuthCommitmentHash([u8; 32]);
 
-impl fmt::Display for ChainHistoryBlockTxAuthCommitmentHash {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.write_str(&self.encode_hex::<String>())
-    }
-}
-
-impl fmt::Debug for ChainHistoryBlockTxAuthCommitmentHash {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_tuple("ChainHistoryBlockTxAuthCommitmentHash")
-            .field(&self.encode_hex::<String>())
-            .finish()
-    }
-}
+impl_hex_display!(Display for ChainHistoryBlockTxAuthCommitmentHash);
+impl_hex_display!(
+    Debug for ChainHistoryBlockTxAuthCommitmentHash,
+    "ChainHistoryBlockTxAuthCommitmentHash"
+);
 
 impl From<[u8; 32]> for ChainHistoryBlockTxAuthCommitmentHash {
     fn from(hash: [u8; 32]) -> Self {
@@ -321,36 +271,8 @@ impl ChainHistoryBlockTxAuthCommitmentHash {
     }
 }
 
-impl ToHex for &ChainHistoryBlockTxAuthCommitmentHash {
-    fn encode_hex<T: FromIterator<char>>(&self) -> T {
-        self.bytes_in_display_order().encode_hex()
-    }
-
-    fn encode_hex_upper<T: FromIterator<char>>(&self) -> T {
-        self.bytes_in_display_order().encode_hex_upper()
-    }
-}
-
-impl ToHex for ChainHistoryBlockTxAuthCommitmentHash {
-    fn encode_hex<T: FromIterator<char>>(&self) -> T {
-        (&self).encode_hex()
-    }
-
-    fn encode_hex_upper<T: FromIterator<char>>(&self) -> T {
-        (&self).encode_hex_upper()
-    }
-}
-
-impl FromHex for ChainHistoryBlockTxAuthCommitmentHash {
-    type Error = <[u8; 32] as FromHex>::Error;
-
-    fn from_hex<T: AsRef<[u8]>>(hex: T) -> Result<Self, Self::Error> {
-        let mut hash = <[u8; 32]>::from_hex(hex)?;
-        hash.reverse();
-
-        Ok(hash.into())
-    }
-}
+impl_hex_display!(ToHex for ChainHistoryBlockTxAuthCommitmentHash, bytes_in_display_order);
+impl_hex_display!(FromHex for ChainHistoryBlockTxAuthCommitmentHash, reverse_then_into: 32);
 
 /// Errors that can occur when checking RootHash consensus rules.
 ///

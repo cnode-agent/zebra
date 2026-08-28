@@ -10,6 +10,7 @@ mod compact_size;
 mod constraint;
 mod date_time;
 mod error;
+mod hex_display;
 mod read_zcash;
 mod write_zcash;
 mod zcash_deserialize;
@@ -31,6 +32,7 @@ pub use constraint::AtLeastOne;
 pub use date_time::{DateTime32, Duration32};
 pub use display_order::BytesInDisplayOrder;
 pub use error::SerializationError;
+pub(crate) use hex_display::impl_hex_display;
 pub use read_zcash::ReadZcashExt;
 pub use write_zcash::WriteZcashExt;
 pub use zcash_deserialize::{
