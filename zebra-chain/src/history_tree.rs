@@ -267,17 +267,6 @@ impl NonEmptyHistoryTree {
         Ok(())
     }
 
-    /// Extend the history tree with the given blocks.
-    pub fn try_extend<'a, T: IntoIterator<Item = (Arc<Block>, BlockCommitmentTreeRoots<'a>)>>(
-        &mut self,
-        iter: T,
-    ) -> Result<(), HistoryTreeError> {
-        for (block, roots) in iter {
-            self.push(block, roots)?;
-        }
-        Ok(())
-    }
-
     /// Prune tree, removing all non-peak entries.
     fn prune(&mut self) -> Result<(), io::Error> {
         // Go through all the peaks of the tree.

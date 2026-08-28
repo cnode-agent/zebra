@@ -69,23 +69,6 @@ impl Utxo {
             from_coinbase,
         }
     }
-
-    /// Create a new UTXO from an output and its transaction location.
-    pub fn from_location(
-        output: transparent::Output,
-        height: block::Height,
-        tx_index_in_block: usize,
-    ) -> Utxo {
-        // Coinbase transactions are always the first transaction in their block,
-        // we check the other consensus rules separately.
-        let from_coinbase = tx_index_in_block == 0;
-
-        Utxo {
-            output,
-            height,
-            from_coinbase,
-        }
-    }
 }
 
 impl OrderedUtxo {
@@ -101,14 +84,6 @@ impl OrderedUtxo {
 
         OrderedUtxo {
             utxo: Utxo::new(output, height, from_coinbase),
-            tx_index_in_block,
-        }
-    }
-
-    /// Create a new ordered UTXO from a UTXO and transaction index.
-    pub fn from_utxo(utxo: Utxo, tx_index_in_block: usize) -> OrderedUtxo {
-        OrderedUtxo {
-            utxo,
             tx_index_in_block,
         }
     }

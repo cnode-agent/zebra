@@ -111,17 +111,6 @@ impl ShieldedData {
         self.actions.actions()
     }
 
-    /// Returns whether the proof has the canonical length for its number of actions.
-    ///
-    /// An Orchard proof is stored as an unbounded byte sequence, so a proof that is
-    /// present but not canonically sized can be padded with arbitrary trailing data
-    /// without affecting its validity. Bundles are parsed leniently (so that historical
-    /// transactions remain deserializable), so this is enforced separately as a
-    /// height-gated consensus rule. See `GHSA-jfw5-j458-pfv6`.
-    pub fn proof_size_is_canonical(&self) -> bool {
-        self.proof.0.len() == expected_proof_size(self.actions.len())
-    }
-
     /// Collect the [`Nullifier`]s for this transaction.
     pub fn nullifiers(&self) -> impl Iterator<Item = &Nullifier> {
         self.actions().map(|action| &action.nullifier)

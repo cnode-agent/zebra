@@ -71,11 +71,6 @@ pub struct OutputPrefixInTransactionV5 {
 }
 
 impl Output {
-    /// Remove the V4 transaction wrapper from this output.
-    pub fn from_v4(output: OutputInTransactionV4) -> Output {
-        output.0
-    }
-
     /// Add a V4 transaction wrapper to this output.
     pub fn into_v4(self) -> OutputInTransactionV4 {
         OutputInTransactionV4(self)
