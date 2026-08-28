@@ -4,12 +4,10 @@ use std::{marker::PhantomData, sync::Arc};
 
 use zebra_chain::block::{self, Block, Height};
 
-use crate::{
-    service::{
-        finalized_state::ZebraDb,
-        non_finalized_state::{Chain, NonFinalizedState},
-        read,
-    },
+use crate::service::{
+    finalized_state::ZebraDb,
+    non_finalized_state::{Chain, NonFinalizedState},
+    read,
 };
 
 /// Generic state chain iterator, which iterates by block height or hash.

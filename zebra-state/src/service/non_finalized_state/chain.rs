@@ -339,7 +339,7 @@ impl Chain {
 
     /// Returns the last fork height if that height is still in the non-finalized state.
     /// Otherwise, if that fork has been finalized, returns `None`.
-    #[allow(dead_code)]
+    #[cfg(feature = "progress-bar")]
     pub fn recent_fork_height(&self) -> Option<Height> {
         self.last_fork_height
             .filter(|last| last >= &self.non_finalized_root_height())
@@ -347,7 +347,7 @@ impl Chain {
 
     /// Returns this chain fork's length, if its fork is still in the non-finalized state.
     /// Otherwise, if the fork has been finalized, returns `None`.
-    #[allow(dead_code)]
+    #[cfg(feature = "progress-bar")]
     pub fn recent_fork_length(&self) -> Option<u32> {
         let fork_length = self.non_finalized_tip_height() - self.recent_fork_height()?;
 

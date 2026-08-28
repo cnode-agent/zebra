@@ -732,7 +732,7 @@ impl NonFinalizedState {
     }
 
     /// Returns the hash for a given `block::Height` if it is present in the best chain.
-    #[allow(dead_code)]
+    #[cfg(any(test, feature = "proptest-impl"))]
     pub fn best_hash(&self, height: block::Height) -> Option<block::Hash> {
         self.best_chain()?
             .blocks
@@ -741,7 +741,7 @@ impl NonFinalizedState {
     }
 
     /// Returns the tip of the best chain.
-    #[allow(dead_code)]
+    #[cfg(any(test, feature = "proptest-impl"))]
     pub fn best_tip(&self) -> Option<(block::Height, block::Hash)> {
         let best_chain = self.best_chain()?;
         let height = best_chain.non_finalized_tip_height();
@@ -760,7 +760,6 @@ impl NonFinalizedState {
 
     /// Returns `true` if the best chain contains `sprout_nullifier`.
     #[cfg(any(test, feature = "proptest-impl"))]
-    #[allow(dead_code)]
     pub fn best_contains_sprout_nullifier(&self, sprout_nullifier: &sprout::Nullifier) -> bool {
         self.best_chain()
             .map(|best_chain| best_chain.sprout_nullifiers.contains_key(sprout_nullifier))
@@ -769,7 +768,6 @@ impl NonFinalizedState {
 
     /// Returns `true` if the best chain contains `sapling_nullifier`.
     #[cfg(any(test, feature = "proptest-impl"))]
-    #[allow(dead_code)]
     pub fn best_contains_sapling_nullifier(
         &self,
         sapling_nullifier: &zebra_chain::sapling::Nullifier,
@@ -785,7 +783,6 @@ impl NonFinalizedState {
 
     /// Returns `true` if the best chain contains `orchard_nullifier`.
     #[cfg(any(test, feature = "proptest-impl"))]
-    #[allow(dead_code)]
     pub fn best_contains_orchard_nullifier(
         &self,
         orchard_nullifier: &zebra_chain::orchard::Nullifier,
