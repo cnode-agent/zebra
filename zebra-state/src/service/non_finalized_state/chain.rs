@@ -485,29 +485,6 @@ impl Chain {
         })
     }
 
-    /// Returns the [`Transaction`] at [`TransactionLocation`], if it exists in this chain.
-    #[allow(dead_code)]
-    pub fn transaction_by_loc(&self, tx_loc: TransactionLocation) -> Option<&Arc<Transaction>> {
-        self.blocks
-            .get(&tx_loc.height)?
-            .block
-            .transactions
-            .get(tx_loc.index.as_usize())
-    }
-
-    /// Returns the [`transaction::Hash`] for the transaction at [`TransactionLocation`],
-    /// if it exists in this chain.
-    #[allow(dead_code)]
-    pub fn transaction_hash_by_loc(
-        &self,
-        tx_loc: TransactionLocation,
-    ) -> Option<&transaction::Hash> {
-        self.blocks
-            .get(&tx_loc.height)?
-            .transaction_hashes
-            .get(tx_loc.index.as_usize())
-    }
-
     /// Returns the [`transaction::Hash`]es in the block with `hash_or_height`,
     /// if it exists in this chain.
     ///
@@ -545,20 +522,6 @@ impl Chain {
     /// Returns false otherwise.
     pub fn contains_block_height(&self, height: Height) -> bool {
         self.blocks.contains_key(&height)
-    }
-
-    /// Returns true is the chain contains the given block hash or height.
-    /// Returns false otherwise.
-    #[allow(dead_code)]
-    pub fn contains_hash_or_height(&self, hash_or_height: impl Into<HashOrHeight>) -> bool {
-        use HashOrHeight::*;
-
-        let hash_or_height = hash_or_height.into();
-
-        match hash_or_height {
-            Hash(hash) => self.contains_block_hash(hash),
-            Height(height) => self.contains_block_height(height),
-        }
     }
 
     /// Returns the non-finalized tip block height and hash.
@@ -1439,14 +1402,6 @@ impl Chain {
             .next()
             .expect("only called while blocks is populated")
             .hash
-    }
-
-    /// Returns the block hash of the `n`th block from the non-finalized root.
-    ///
-    /// This is the block at `non_finalized_root_height() + n`.
-    #[allow(dead_code)]
-    pub fn non_finalized_nth_hash(&self, n: usize) -> Option<block::Hash> {
-        self.blocks.values().nth(n).map(|block| block.hash)
     }
 
     /// Remove the highest height block of the non-finalized portion of a chain.

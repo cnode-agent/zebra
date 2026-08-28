@@ -276,12 +276,6 @@ impl DbFormatChange {
         matches!(self, NewlyCreated { .. })
     }
 
-    /// Returns true if this format change/check happens at startup.
-    #[allow(dead_code)]
-    pub fn is_run_at_startup(&self) -> bool {
-        !matches!(self, CheckNewBlocksCurrent { .. })
-    }
-
     /// Returns the running version in this format change.
     pub fn running_version(&self) -> Version {
         match self {

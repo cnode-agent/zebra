@@ -117,13 +117,6 @@ impl ZebraDb {
         self.db.zs_get(&ironwood_nullifiers, &ironwood_nullifier)?
     }
 
-    /// Returns `true` if the finalized state contains `sprout_anchor`.
-    #[allow(dead_code)]
-    pub fn contains_sprout_anchor(&self, sprout_anchor: &sprout::tree::Root) -> bool {
-        let sprout_anchors = self.db.cf_handle("sprout_anchors").unwrap();
-        self.db.zs_contains(&sprout_anchors, &sprout_anchor)
-    }
-
     /// Returns `true` if the finalized state contains `sapling_anchor`.
     pub fn contains_sapling_anchor(&self, sapling_anchor: &sapling::tree::Root) -> bool {
         let sapling_anchors = self.db.cf_handle("sapling_anchors").unwrap();
@@ -812,19 +805,6 @@ impl DiskWriteBatch {
         self.zs_delete(&sapling_tree_cf, height);
     }
 
-    /// Deletes the range of Sapling note commitment trees at the given [`Height`]s.
-    /// Doesn't delete anchors from the anchor index. Doesn't delete the upper bound.
-    #[allow(dead_code)]
-    pub fn delete_range_sapling_tree(&mut self, zebra_db: &ZebraDb, from: &Height, to: &Height) {
-        let sapling_tree_cf = zebra_db
-            .db
-            .cf_handle("sapling_note_commitment_tree")
-            .unwrap();
-
-        // TODO: convert zs_delete_range() to take std::ops::RangeBounds
-        self.zs_delete_range(&sapling_tree_cf, from, to);
-    }
-
     /// Deletes the given Sapling note commitment tree `anchor`.
     #[allow(dead_code)]
     pub fn delete_sapling_anchor(&mut self, zebra_db: &ZebraDb, anchor: &sapling::tree::Root) {
@@ -942,26 +922,6 @@ impl DiskWriteBatch {
             .cf_handle("orchard_note_commitment_tree")
             .unwrap();
         self.zs_delete(&orchard_tree_cf, height);
-    }
-
-    /// Deletes the range of Orchard note commitment trees at the given [`Height`]s.
-    /// Doesn't delete anchors from the anchor index. Doesn't delete the upper bound.
-    #[allow(dead_code)]
-    pub fn delete_range_orchard_tree(&mut self, zebra_db: &ZebraDb, from: &Height, to: &Height) {
-        let orchard_tree_cf = zebra_db
-            .db
-            .cf_handle("orchard_note_commitment_tree")
-            .unwrap();
-
-        // TODO: convert zs_delete_range() to take std::ops::RangeBounds
-        self.zs_delete_range(&orchard_tree_cf, from, to);
-    }
-
-    /// Deletes the given Orchard note commitment tree `anchor`.
-    #[allow(dead_code)]
-    pub fn delete_orchard_anchor(&mut self, zebra_db: &ZebraDb, anchor: &orchard::tree::Root) {
-        let orchard_anchors = zebra_db.db.cf_handle("orchard_anchors").unwrap();
-        self.zs_delete(&orchard_anchors, anchor);
     }
 
     /// Deletes the range of Orchard subtrees at the given [`NoteCommitmentSubtreeIndex`]es.
