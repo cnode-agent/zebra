@@ -159,6 +159,18 @@ pub struct Config {
 
     // Elasticsearch configs
     //
+    /// Whether a read-write finalized state should index committed blocks into
+    /// Elasticsearch.
+    ///
+    /// This field is always present so that callers never have to spell out a
+    /// `#[cfg(feature = "elasticsearch")]` argument. It is ignored unless Zebra is
+    /// built with the `elasticsearch` feature, and read-only states ignore it always.
+    ///
+    /// Not part of the user-facing config file: Elasticsearch indexing is switched on
+    /// by the build feature, not by configuration.
+    #[serde(skip)]
+    pub elasticsearch_enabled: bool,
+
     #[cfg(feature = "elasticsearch")]
     /// The elasticsearch database url.
     pub elasticsearch_url: String,
@@ -236,6 +248,7 @@ impl Config {
     pub fn ephemeral() -> Config {
         Config {
             ephemeral: true,
+            elasticsearch_enabled: false,
             ..Config::default()
         }
     }
@@ -251,6 +264,7 @@ impl Default for Config {
             debug_stop_at_height: None,
             debug_validity_check_interval: None,
             debug_skip_non_finalized_state_backup_task: false,
+            elasticsearch_enabled: true,
             #[cfg(feature = "elasticsearch")]
             elasticsearch_url: "https://localhost:9200".to_string(),
             #[cfg(feature = "elasticsearch")]
@@ -542,7 +556,6 @@ pub(crate) use hidden::{
 };
 
 pub(crate) mod hidden {
-    #![allow(dead_code)]
 
     use zebra_chain::common::atomic_write;
 
@@ -552,6 +565,7 @@ pub(crate) mod hidden {
     /// (Or a new database is created.)
     ///
     /// See `write_database_format_version_to_disk()` for details.
+    #[cfg_attr(not(any(test, feature = "proptest-impl")), allow(dead_code))]
     pub fn write_state_database_format_version_to_disk(
         config: &Config,
         changed_version: &Version,

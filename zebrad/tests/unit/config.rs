@@ -1130,3 +1130,20 @@ fn config_env_elasticsearch_password_errors() {
     let msg = result.unwrap_err().to_string();
     assert!(msg.contains("sensitive key"), "error message: {}", msg);
 }
+
+#[test]
+fn tmp_elasticsearch_enabled_defaults() {
+    // A production config parsed from TOML keeps the `Default` value (`true`),
+    // matching the `true` that `StateService::new` used to pass explicitly.
+    let parsed: ZebradConfig = toml::from_str("[state]\nephemeral = true\n").expect("valid config");
+    assert!(parsed.state.elasticsearch_enabled);
+    assert!(zebra_state::Config::default().elasticsearch_enabled);
+
+    // The test-only constructor disables it, matching the `false` that every test
+    // call site used to pass explicitly.
+    assert!(!zebra_state::Config::ephemeral().elasticsearch_enabled);
+
+    // The field must not leak into generated config files.
+    let out = toml::to_string(&ZebradConfig::default()).expect("serializes");
+    assert!(!out.contains("elasticsearch_enabled"), "leaked:\n{out}");
+}

@@ -152,21 +152,12 @@ pub struct FinalizedState {
 }
 
 impl FinalizedState {
-    /// Returns an on-disk database instance for `config`, `network`, and `elastic_db`.
+    /// Returns an on-disk read-write database instance for `config` and `network`.
     /// If there is no existing database, creates a new database on disk.
-    pub fn new(
-        config: &Config,
-        network: &Network,
-        #[cfg(feature = "elasticsearch")] enable_elastic_db: bool,
-    ) -> Result<Self, StateInitError> {
-        Self::new_with_debug(
-            config,
-            network,
-            false,
-            #[cfg(feature = "elasticsearch")]
-            enable_elastic_db,
-            false,
-        )
+    ///
+    /// Elasticsearch indexing is controlled by `config.elasticsearch_enabled`.
+    pub fn new(config: &Config, network: &Network) -> Result<Self, StateInitError> {
+        Self::new_with_debug(config, network, false, false)
     }
 
     /// Returns an on-disk database instance with the supplied production and debug settings.
@@ -178,11 +169,11 @@ impl FinalizedState {
         config: &Config,
         network: &Network,
         debug_skip_format_upgrades: bool,
-        #[cfg(feature = "elasticsearch")] enable_elastic_db: bool,
         read_only: bool,
     ) -> Result<Self, StateInitError> {
+        // A read-only state never commits blocks, so it never indexes to Elasticsearch.
         #[cfg(feature = "elasticsearch")]
-        let elastic_db = if enable_elastic_db {
+        let elastic_db = if config.elasticsearch_enabled && !read_only {
             use elasticsearch::{
                 auth::Credentials::Basic,
                 cert::CertificateValidation,
