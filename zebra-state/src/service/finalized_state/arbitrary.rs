@@ -1,6 +1,7 @@
 //! Arbitrary value generation and test harnesses for the finalized state.
 
-#![allow(dead_code)]
+// Compiled under `proptest-impl` too, but only used by this crate's own tests.
+#![cfg_attr(not(test), allow(dead_code))]
 
 use std::{ops::Deref, sync::Arc};
 

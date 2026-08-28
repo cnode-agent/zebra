@@ -56,7 +56,6 @@ pub(crate) const MAX_EVICTION_MEMORY_ENTRIES: usize = 40_000;
 /// Each committed block clears these rejections, because new blocks can supply missing inputs.
 #[derive(Error, Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(any(test, feature = "proptest-impl"), derive(Arbitrary))]
-#[allow(dead_code)]
 pub enum ExactTipRejectionError {
     /// Skip this variant in proptest because `TransactionError` is a large enum
     /// that causes stack overflow during arbitrary value generation.
@@ -73,7 +72,6 @@ pub enum ExactTipRejectionError {
 /// Each committed block clears these rejections, because new blocks can evict other transactions.
 #[derive(Error, Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(any(test, feature = "proptest-impl"), derive(Arbitrary))]
-#[allow(dead_code)]
 pub enum SameEffectsTipRejectionError {
     #[error(
         "transaction rejected because another transaction in the mempool has already spent some of \
@@ -95,7 +93,6 @@ pub enum SameEffectsTipRejectionError {
 /// or change the consensus rules.
 #[derive(Error, Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(any(test, feature = "proptest-impl"), derive(Arbitrary))]
-#[allow(dead_code)]
 pub enum SameEffectsChainRejectionError {
     #[error("best chain tip has reached transaction expiry height")]
     Expired,
@@ -120,7 +117,6 @@ pub enum SameEffectsChainRejectionError {
 /// Storage error that combines all other specific error types.
 #[derive(Error, Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(any(test, feature = "proptest-impl"), derive(Arbitrary))]
-#[allow(dead_code)]
 pub enum RejectionError {
     #[error(transparent)]
     ExactTip(#[from] ExactTipRejectionError),

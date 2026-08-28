@@ -980,25 +980,13 @@ impl<Request, Response, Error> ResponseSender<Request, Response, Error> {
     }
 }
 
-/// A representation of an assertion type.
-///
-/// This trait is used to group the types of assertions that the [`MockService`] can do. There are
-/// currently two types that are used as type-system tags on the [`MockService`]:
-///
-/// - [`PanicAssertion`]
-/// - [`PropTestAssertion`]
-#[allow(dead_code)]
-trait AssertionType {}
+// The two type-system tags used for the [`MockService`]'s assertion-type parameter.
 
 /// Represents normal Rust assertions that panic, like [`assert_eq`].
 pub enum PanicAssertion {}
 
 /// Represents [`mod@proptest`] assertions that return errors, like [`prop_assert_eq`].
 pub enum PropTestAssertion {}
-
-impl AssertionType for PanicAssertion {}
-
-impl AssertionType for PropTestAssertion {}
 
 /// A helper trait to improve ergonomics when sending a response.
 ///

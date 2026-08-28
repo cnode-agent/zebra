@@ -71,7 +71,7 @@ pub enum AddressBookRequest {
     //
     // Hot reads like `getpeerinfo` currently use the shared address book
     // handle instead of this request, so they stay off the write queue.
-    #[allow(dead_code)]
+    #[cfg_attr(not(test), allow(dead_code))]
     RecentlyLivePeers,
 
     /// Return the peers that should be written to the peer cache on disk.
@@ -93,7 +93,7 @@ pub enum AddressBookResponse {
     //
     // Production changes are fire-and-forget, so the updated entry is
     // currently only read by tests.
-    Updated(#[allow(dead_code)] Option<MetaAddr>),
+    Updated(#[cfg_attr(not(test), allow(dead_code))] Option<MetaAddr>),
 
     /// The address book was extended with the gossiped changes.
     Extended,

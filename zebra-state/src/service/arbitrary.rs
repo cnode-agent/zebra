@@ -1,5 +1,8 @@
 //! Arbitrary data generation and test setup for Zebra's state.
 
+// Exported under `proptest-impl`, but only used by this crate's own proptests.
+#![cfg_attr(not(test), allow(dead_code))]
+
 use std::{sync::Arc, time::Duration};
 
 use futures::{stream::FuturesUnordered, StreamExt};
@@ -85,7 +88,6 @@ impl PreparedChain {
     /// Create a PreparedChain strategy with Heartwood-onward blocks.
     // dead_code is allowed because the function is called only by tests,
     // but the code is also compiled when proptest-impl is activated.
-    #[allow(dead_code)]
     pub(crate) fn new_heartwood() -> Self {
         // The history tree only works with Heartwood onward.
         // Since the network will be chosen later, we pick the larger
@@ -113,14 +115,12 @@ impl PreparedChain {
     /// Transform the strategy to use valid commitments in the block.
     ///
     /// This is slower so it should be used only when needed.
-    #[allow(dead_code)]
     pub(crate) fn with_valid_commitments(mut self) -> Self {
         self.generate_valid_commitments = true;
         self
     }
 
     /// Set the ledger strategy for the prepared chain.
-    #[allow(dead_code)]
     pub(crate) fn with_ledger_strategy(
         mut self,
         ledger_strategy: BoxedStrategy<LedgerState>,

@@ -122,7 +122,6 @@ struct CancelDownloadAndVerify;
 
 /// Errors that can occur while downloading and verifying a transaction.
 #[derive(Error, Debug, Clone)]
-#[allow(dead_code)]
 pub enum TransactionDownloadVerifyError {
     #[error("transaction is already in state")]
     InState,

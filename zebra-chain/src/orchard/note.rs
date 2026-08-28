@@ -22,12 +22,12 @@ mod arbitrary;
 
 /// A random seed (rseed) used in the Orchard note creation.
 #[derive(Clone, Copy, Debug)]
-// At the moment this field is never read.
-//
 // TODO: consider replacing this code with the equivalent `orchard` crate code,
 //       which is better tested.
-#[allow(dead_code)]
-pub struct SeedRandomness(pub(crate) [u8; 32]);
+pub struct SeedRandomness(
+    // The seed is generated and stored, but nothing reads it back yet.
+    #[allow(dead_code)] pub(crate) [u8; 32],
+);
 
 impl SeedRandomness {
     pub fn new<T>(csprng: &mut T) -> Result<Self, RandError>

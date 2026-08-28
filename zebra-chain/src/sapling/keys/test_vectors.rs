@@ -2,6 +2,7 @@
 //!
 //! Generated from https://github.com/zcash-hackworks/zcash-test-vectors/blob/07dc43fd90cd78a0b45b2eb5d2be3ce3c1841603/sapling_key_components.py
 
+// Spec reference vectors, retained for future tests: nothing consumes them today.
 #![allow(dead_code)]
 
 pub struct TestVector {

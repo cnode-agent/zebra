@@ -16,7 +16,7 @@ use super::{MetaAddr, MetaAddrChange, PeerServices, PeerSocketAddr};
 /// tests can cover multiple transitions through every state.
 ///
 /// [1]: super::PeerAddrState
-#[allow(dead_code)]
+#[cfg_attr(not(test), allow(dead_code))]
 pub const MAX_ADDR_CHANGE: usize = 15;
 
 /// The largest number of random addresses we want to add to an [`AddressBook`][2].
@@ -26,7 +26,7 @@ pub const MAX_ADDR_CHANGE: usize = 15;
 ///
 /// [1]: super::PeerAddrState
 /// [2]: crate::AddressBook
-#[allow(dead_code)]
+#[cfg_attr(not(test), allow(dead_code))]
 pub const MAX_META_ADDR: usize = 8;
 
 impl MetaAddr {

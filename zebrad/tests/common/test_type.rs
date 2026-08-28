@@ -72,7 +72,7 @@ pub enum TestType {
     /// This test requires a cached Zebra state.
     //
     // Only used with `--features=lightwalletd-grpc-tests`.
-    #[allow(dead_code)]
+    #[cfg_attr(not(feature = "lightwalletd-grpc-tests"), allow(dead_code))]
     FullSyncFromGenesis {
         /// Should the test allow a cached lightwalletd state?
         ///
@@ -88,7 +88,6 @@ pub enum TestType {
     /// This test requires a cached Zebra and lightwalletd state.
     // Only used with the `lightwalletd-grpc-tests` feature.
     // Only used with the `lightwalletd-grpc-tests` feature.
-    #[allow(dead_code)]
     UpdateCachedState,
 
     /// Launch `zebrad` and sync it to the tip, but don't launch `lightwalletd`.
@@ -102,7 +101,6 @@ pub enum TestType {
     /// Launch `zebrad` and sync it to the tip, but don't launch `lightwalletd`.
     ///
     /// This test requires a cached Zebra state.
-    #[allow(dead_code)]
     UpdateZebraCachedStateWithRpc,
 }
 

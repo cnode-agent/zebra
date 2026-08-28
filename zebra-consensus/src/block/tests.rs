@@ -126,6 +126,9 @@ static INVALID_COINBASE_TRANSCRIPT: Lazy<
 // TODO: enable this test after implementing contextual verification
 // #[tokio::test]
 // #[ignore]
+//
+// The `#[allow]`s below are what the commented-out test attributes would otherwise
+// replace; they also keep the four transcript statics above alive.
 #[allow(dead_code)]
 async fn check_transcripts_test() -> Result<(), Report> {
     check_transcripts().await

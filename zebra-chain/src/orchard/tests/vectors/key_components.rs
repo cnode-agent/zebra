@@ -3,7 +3,9 @@
 //!
 //! Produced by <https://github.com/zcash-hackworks/zcash-test-vectors/blob/ec5fe3abef5219d0f8c9edbc93bb4038f1729dfe/orchard_key_components.py>
 
+// Spec reference vectors, retained for future tests: nothing consumes them today.
 #![allow(dead_code)]
+
 pub struct TestVector {
     pub(crate) sk: [u8; 32],
     pub(crate) ask: [u8; 32],

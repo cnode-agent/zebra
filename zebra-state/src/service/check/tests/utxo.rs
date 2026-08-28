@@ -923,11 +923,6 @@ struct TestState {
     /// The pre-populated non-finalized state.
     non_finalized_state: NonFinalizedState,
 
-    /// The genesis block that has already been committed to the `state` service's
-    /// finalized state.
-    #[allow(dead_code)]
-    genesis: CheckpointVerifiedBlock,
-
     /// A block at height 1, that has already been committed to the `state` service.
     block1: Arc<Block>,
 }
@@ -940,7 +935,7 @@ fn new_state_with_mainnet_transparent_data(
     outputs: impl IntoIterator<Item = transparent::Output>,
     use_finalized_state: bool,
 ) -> TestState {
-    let (mut finalized_state, mut non_finalized_state, genesis) = new_state_with_mainnet_genesis();
+    let (mut finalized_state, mut non_finalized_state, _genesis) = new_state_with_mainnet_genesis();
     let previous_non_finalized_state = non_finalized_state.clone();
 
     let mut block1 = zebra_test::vectors::BLOCK_MAINNET_1_BYTES
@@ -1031,7 +1026,6 @@ fn new_state_with_mainnet_transparent_data(
     TestState {
         finalized_state,
         non_finalized_state,
-        genesis,
         block1,
     }
 }

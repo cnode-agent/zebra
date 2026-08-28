@@ -3,8 +3,6 @@
 //! Note: we allow dead code in this module, because it is mainly used by the gRPC tests,
 //! which are optional.
 
-#![allow(dead_code)]
-
 use std::{
     iter,
     path::{Path, PathBuf},
@@ -47,6 +45,7 @@ pub const DATABASE_FORMAT_CHECK_INTERVAL: Duration = Duration::from_secs(5 * 60)
 pub const DATABASE_FORMAT_UPGRADE_IS_LONG: bool = false;
 
 /// Type alias for a boxed state service.
+#[cfg_attr(not(feature = "indexer"), allow(dead_code))]
 pub type BoxStateService =
     BoxService<zebra_state::Request, zebra_state::Response, zebra_state::BoxError>;
 
@@ -127,6 +126,7 @@ pub fn wait_for_state_version_upgrade<T>(
 
 /// Starts a state service using the provided `cache_dir` as the directory with the chain state.
 #[tracing::instrument(skip(cache_dir))]
+#[cfg_attr(not(feature = "indexer"), allow(dead_code))]
 pub async fn start_state_service_with_cache_dir(
     network: &Network,
     cache_dir: impl Into<PathBuf>,
@@ -154,6 +154,10 @@ pub async fn start_state_service_with_cache_dir(
 /// Note: This returns the finalized tip height, which may be behind the best chain tip
 /// if there are non-finalized blocks.
 #[tracing::instrument]
+#[cfg_attr(
+    not(any(feature = "indexer", feature = "lightwalletd-grpc-tests")),
+    allow(dead_code)
+)]
 pub async fn load_finalized_tip_height_from_state_directory(
     network: &Network,
     state_path: &Path,
@@ -187,6 +191,10 @@ pub async fn load_finalized_tip_height_from_state_directory(
 /// ## Panics
 ///
 /// If the provided `test_type` doesn't need an rpc server and cached state, or if `max_num_blocks` is 0
+#[cfg_attr(
+    not(any(feature = "indexer", feature = "lightwalletd-grpc-tests")),
+    allow(dead_code)
+)]
 pub async fn future_blocks(
     network: &Network,
     test_type: TestType,
@@ -218,6 +226,10 @@ pub async fn future_blocks(
 /// ## Panics
 ///
 /// If the provided `test_type` doesn't need an rpc server and cached state, or if `max_num_blocks` is 0
+#[cfg_attr(
+    not(any(feature = "indexer", feature = "lightwalletd-grpc-tests")),
+    allow(dead_code)
+)]
 pub async fn raw_future_blocks(
     network: &Network,
     test_type: TestType,

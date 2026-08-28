@@ -65,7 +65,6 @@ fn sync_to_mandatory_checkpoint_for_network(network: Network) -> Result<()> {
 /// This assumes that the config'd state is already synced at or near the mandatory checkpoint
 /// activation on mainnet. If the state has already synced past the mandatory checkpoint
 /// activation by 1200 blocks, it will fail.
-#[allow(dead_code)]
 #[test]
 #[ignore]
 fn sync_past_mandatory_checkpoint_mainnet() -> Result<()> {
@@ -79,7 +78,6 @@ fn sync_past_mandatory_checkpoint_mainnet() -> Result<()> {
 /// This assumes that the config'd state is already synced at or near the mandatory checkpoint
 /// activation on testnet. If the state has already synced past the mandatory checkpoint
 /// activation by 1200 blocks, it will fail.
-#[allow(dead_code)]
 #[test]
 #[ignore]
 fn sync_past_mandatory_checkpoint_testnet() -> Result<()> {

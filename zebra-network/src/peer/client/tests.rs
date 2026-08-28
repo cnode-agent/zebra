@@ -14,10 +14,7 @@ use futures::{
     channel::{mpsc, oneshot},
     future::{self, AbortHandle, Future, FutureExt},
 };
-use tokio::{
-    sync::broadcast::{self, error::TryRecvError},
-    task::JoinHandle,
-};
+use tokio::{sync::broadcast, task::JoinHandle};
 
 use zebra_chain::block::Height;
 
@@ -42,6 +39,7 @@ mod vectors;
 pub struct ClientTestHarness {
     client_request_receiver: Option<mpsc::Receiver<ClientRequest>>,
     shutdown_receiver: Option<oneshot::Receiver<CancelHeartbeatTask>>,
+    /// Held so the `Client`'s inventory broadcast channel keeps a live receiver.
     #[allow(dead_code)]
     inv_receiver: Option<broadcast::Receiver<InventoryChange>>,
     error_slot: ErrorSlot,
@@ -133,43 +131,6 @@ impl ClientTestHarness {
         }
     }
 
-    /// Drops the receiver endpoint of [`InventoryChange`]s, forcefully closing the channel.
-    ///
-    /// The inventory registry that would track the changes is mocked for testing.
-    ///
-    /// Note: this closes the broadcast receiver, it doesn't have a separate `close()` method.
-    #[allow(dead_code)]
-    pub fn drop_inventory_change_receiver(&mut self) {
-        self.inv_receiver
-            .take()
-            .expect("inventory change receiver endpoint has already been dropped");
-    }
-
-    /// Tries to receive an [`InventoryChange`] sent by the [`Client`] instance.
-    ///
-    /// This method acts like a mock inventory registry, allowing tests to track the changes.
-    ///
-    /// TODO: make ReceiveRequestAttempt generic, and use it here.
-    #[allow(dead_code)]
-    #[allow(clippy::unwrap_in_result)]
-    pub(crate) fn try_to_receive_inventory_change(&mut self) -> Option<InventoryChange> {
-        let receive_result = self
-            .inv_receiver
-            .as_mut()
-            .expect("inventory change receiver endpoint has been dropped")
-            .try_recv();
-
-        match receive_result {
-            Ok(change) => Some(change),
-            Err(TryRecvError::Empty) => None,
-            Err(TryRecvError::Closed) => None,
-            Err(TryRecvError::Lagged(skipped_messages)) => unreachable!(
-                "unexpected lagged inventory receiver in tests, skipped {} messages",
-                skipped_messages,
-            ),
-        }
-    }
-
     /// Returns the current error in the [`ErrorSlot`], if there is one.
     pub fn current_error(&self) -> Option<SharedPeerError> {
         self.error_slot.try_get_error()
@@ -234,7 +195,6 @@ impl ReceiveRequestAttempt {
     }
 
     /// Returns the received request, if there was one.
-    #[allow(dead_code)]
     pub fn request(self) -> Option<ClientRequest> {
         match self {
             ReceiveRequestAttempt::Request(request) => Some(request),

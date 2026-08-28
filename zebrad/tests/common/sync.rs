@@ -102,6 +102,8 @@ pub enum MempoolBehavior {
     ///
     /// [`sync_until`] will kill `zebrad` after it logs mempool activation,
     /// then the `stop_regex`.
+    //
+    // No test currently selects this behaviour, but the matches on it below are live.
     #[allow(dead_code)]
     ShouldAutomaticallyActivate,
 
@@ -142,12 +144,6 @@ impl MempoolBehavior {
     /// Returns `true` if the mempool should automatically activate.
     pub fn require_automatic_activation(&self) -> bool {
         matches!(self, MempoolBehavior::ShouldAutomaticallyActivate)
-    }
-
-    /// Returns `true` if the mempool should not activate.
-    #[allow(dead_code)]
-    pub fn require_no_activation(&self) -> bool {
-        matches!(self, MempoolBehavior::ShouldNotActivate)
     }
 }
 

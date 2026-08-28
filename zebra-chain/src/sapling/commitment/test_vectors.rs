@@ -9,6 +9,7 @@
 //! librustzcash, they match their Display impl to match the Python hex strings
 //! and that's what they compare in their unit tests, not the bytes.
 
+// Spec reference vectors, retained for future tests: nothing consumes them today.
 #![allow(dead_code)]
 
 use bitvec::prelude::*;

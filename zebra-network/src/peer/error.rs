@@ -34,7 +34,6 @@ impl SharedPeerError {
 
 /// An error related to peer connection handling.
 #[derive(Error, Debug)]
-#[allow(dead_code)]
 pub enum PeerError {
     /// The remote peer closed the connection.
     #[error("Peer closed connection")]

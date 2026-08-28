@@ -40,9 +40,6 @@ pub struct ZcashdCompatSetup {
     pub zcashd_client: ZcashdRpcClient,
     /// The network under test.
     pub network: Network,
-    /// Zebrad main RPC address.
-    #[allow(dead_code)]
-    pub zebra_rpc_addr: SocketAddr,
 }
 
 impl ZcashdCompatSetup {
@@ -170,7 +167,6 @@ pub async fn spawn_zebrad_with_zcashd_compat() -> Result<ZcashdCompatSetup> {
         zebra_client,
         zcashd_client,
         network: Network::new_regtest(Default::default()),
-        zebra_rpc_addr,
     };
 
     let zebrad = setup
@@ -241,7 +237,6 @@ pub async fn connect_to_external_zcashd_compat(kind: NetworkKind) -> Result<Zcas
         zebra_client: RpcRequestClient::new(zebra_rpc_addr),
         zcashd_client,
         network,
-        zebra_rpc_addr,
     })
 }
 

@@ -80,7 +80,6 @@ pub(crate) async fn submit_blocks_test() -> Result<()> {
         .wrap_err("Possible port conflict. Are there other zebrad tests running?")
 }
 
-#[allow(dead_code)]
 pub trait MiningRpcMethods {
     async fn block_from_template(&self, net: &Network) -> Result<(Block, Height)>;
     async fn submit_block(&self, block: Block) -> Result<()>;

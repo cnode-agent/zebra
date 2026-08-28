@@ -601,7 +601,7 @@ where
     /// If this connection tracker or `Connection`s are leaked,
     /// the number of active connections will appear higher than it actually is.
     /// If enough connections leak, Zebra will stop making new connections.
-    #[allow(dead_code)]
+    #[allow(dead_code)] // held for its `Drop` impl, which frees the connection slot
     pub(super) connection_tracker: ConnectionTracker,
 
     /// The metrics label for this peer. Usually the remote IP and port.

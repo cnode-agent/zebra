@@ -1206,7 +1206,6 @@ pub struct TestOutput<T> {
     ///
     /// Keeps the test dir around from `TestChild`,
     /// so it doesn't get deleted during `wait_with_output`.
-    #[allow(dead_code)]
     pub dir: Option<T>,
 
     /// The test command for this test output.
