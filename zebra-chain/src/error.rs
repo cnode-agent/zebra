@@ -4,8 +4,6 @@ use std::{io, sync::Arc};
 use thiserror::Error;
 use zcash_protocol::value::BalanceError;
 
-// TODO: Move all these enums into a common enum at the bottom.
-
 /// Errors related to random bytes generation.
 #[derive(Error, Copy, Clone, Debug, PartialEq, Eq)]
 pub enum RandError {
