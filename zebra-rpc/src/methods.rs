@@ -62,8 +62,8 @@ use zcash_protocol::consensus::{self, Parameters};
 use zebra_chain::{
     amount::{Amount, NegativeAllowed},
     block::{self, Block, Commitment, Height, SerializedBlock, TryIntoHeight},
-    chain_sync_status::ChainSyncStatus,
-    chain_tip::{ChainTip, NetworkChainTipHeightEstimator},
+    chain_sync_status::ChainSyncStatusService,
+    chain_tip::{ChainTipService, NetworkChainTipHeightEstimator},
     parameters::{
         subsidy::{
             block_subsidy, founders_reward, funding_stream_values, miner_subsidy,
@@ -84,7 +84,7 @@ use zebra_chain::{
 use zebra_consensus::{
     funding_stream_address, router::service_trait::BlockVerifierService, RouterError,
 };
-use zebra_network::{address_book_peers::AddressBookPeers, types::PeerServices, PeerSocketAddr};
+use zebra_network::{address_book_peers::AddressBookService, types::PeerServices, PeerSocketAddr};
 use zebra_node_services::mempool::{self, CreatedOrSpent, MempoolService};
 use zebra_state::{
     AnyTx, HashOrHeight, OutputLocation, ReadRequest, ReadResponse, ReadState as ReadStateService,
@@ -845,10 +845,10 @@ where
     Mempool: MempoolService,
     State: StateService,
     ReadState: ReadStateService,
-    Tip: ChainTip + Clone + Send + Sync + 'static,
-    AddressBook: AddressBookPeers + Clone + Send + Sync + 'static,
+    Tip: ChainTipService,
+    AddressBook: AddressBookService,
     BlockVerifierRouter: BlockVerifierService,
-    SyncStatus: ChainSyncStatus + Clone + Send + Sync + 'static,
+    SyncStatus: ChainSyncStatusService,
 {
     // Configuration
     //
@@ -907,10 +907,10 @@ where
     Mempool: MempoolService,
     State: StateService,
     ReadState: ReadStateService,
-    Tip: ChainTip + Clone + Send + Sync + 'static,
-    AddressBook: AddressBookPeers + Clone + Send + Sync + 'static,
+    Tip: ChainTipService,
+    AddressBook: AddressBookService,
     BlockVerifierRouter: BlockVerifierService,
-    SyncStatus: ChainSyncStatus + Clone + Send + Sync + 'static,
+    SyncStatus: ChainSyncStatusService,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         // Skip fields without Debug impls, and skip channels
@@ -930,10 +930,10 @@ where
     Mempool: MempoolService,
     State: StateService,
     ReadState: ReadStateService,
-    Tip: ChainTip + Clone + Send + Sync + 'static,
-    AddressBook: AddressBookPeers + Clone + Send + Sync + 'static,
+    Tip: ChainTipService,
+    AddressBook: AddressBookService,
     BlockVerifierRouter: BlockVerifierService,
-    SyncStatus: ChainSyncStatus + Clone + Send + Sync + 'static,
+    SyncStatus: ChainSyncStatusService,
 {
     /// Create a new instance of the RPC handler.
     //
@@ -1025,10 +1025,10 @@ where
     Mempool: MempoolService,
     State: StateService,
     ReadState: ReadStateService,
-    Tip: ChainTip + Clone + Send + Sync + 'static,
-    AddressBook: AddressBookPeers + Clone + Send + Sync + 'static,
+    Tip: ChainTipService,
+    AddressBook: AddressBookService,
     BlockVerifierRouter: BlockVerifierService,
-    SyncStatus: ChainSyncStatus + Clone + Send + Sync + 'static,
+    SyncStatus: ChainSyncStatusService,
 {
     async fn get_info(&self) -> Result<GetInfoResponse> {
         let version = GetInfoResponse::version_from_string(&self.build_version)
@@ -3434,7 +3434,7 @@ where
 /// or an RPC error if there are no blocks in the state.
 pub fn best_chain_tip_height<Tip>(latest_chain_tip: &Tip) -> Result<Height>
 where
-    Tip: ChainTip + Clone + Send + Sync + 'static,
+    Tip: ChainTipService,
 {
     latest_chain_tip
         .best_tip_height()

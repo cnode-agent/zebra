@@ -143,6 +143,13 @@ pub trait ChainTip {
     }
 }
 
+/// Trait alias for [`ChainTip`] handles that can be shared between async tasks.
+///
+/// It adds the common bounds that every service holding a chain tip handle requires.
+pub trait ChainTipService: ChainTip + Clone + Send + Sync + 'static {}
+
+impl<T> ChainTipService for T where T: ChainTip + Clone + Send + Sync + 'static {}
+
 /// A chain tip that is always empty and never changes.
 ///
 /// Used in production for isolated network connections,

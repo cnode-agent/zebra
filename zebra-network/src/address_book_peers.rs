@@ -18,3 +18,10 @@ pub trait AddressBookPeers {
     /// Add a peer to the address book.
     fn add_peer(&mut self, peer: PeerSocketAddr) -> bool;
 }
+
+/// Trait alias for [`AddressBookPeers`] handles that can be shared between async tasks.
+///
+/// It adds the common bounds that every service holding an address book handle requires.
+pub trait AddressBookService: AddressBookPeers + Clone + Send + Sync + 'static {}
+
+impl<T> AddressBookService for T where T: AddressBookPeers + Clone + Send + Sync + 'static {}
